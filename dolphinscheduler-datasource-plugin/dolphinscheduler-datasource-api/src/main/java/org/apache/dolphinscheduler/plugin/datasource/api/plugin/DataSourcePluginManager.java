@@ -18,67 +18,48 @@
 package org.apache.dolphinscheduler.plugin.datasource.api.plugin;
 
 import static java.lang.String.format;
-import static java.util.Objects.requireNonNull;
 
-import static com.google.common.base.Preconditions.checkState;
-
-import org.apache.dolphinscheduler.spi.DolphinSchedulerPlugin;
-import org.apache.dolphinscheduler.spi.classloader.ThreadContextClassLoader;
 import org.apache.dolphinscheduler.spi.datasource.DataSourceChannel;
 import org.apache.dolphinscheduler.spi.datasource.DataSourceChannelFactory;
-import org.apache.dolphinscheduler.spi.exception.PluginException;
-import org.apache.dolphinscheduler.spi.plugin.AbstractDolphinPluginManager;
+import org.apache.dolphinscheduler.spi.plugin.PrioritySPIFactory;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
-public class DataSourcePluginManager extends AbstractDolphinPluginManager {
+@Slf4j
+public class DataSourcePluginManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(DataSourcePluginManager.class);
-
-    private final Map<String, DataSourceChannelFactory> datasourceClientFactoryMap = new ConcurrentHashMap<>();
-    private final Map<String, DataSourceChannel> datasourceClientMap = new ConcurrentHashMap<>();
+    private final Map<String, DataSourceChannel> datasourceChannelMap = new ConcurrentHashMap<>();
 
     public Map<String, DataSourceChannel> getDataSourceChannelMap() {
-        return datasourceClientMap;
+        return Collections.unmodifiableMap(datasourceChannelMap);
     }
 
-    private void addDatasourceClientFactory(DataSourceChannelFactory datasourceChannelFactory) {
-        requireNonNull(datasourceChannelFactory, "datasourceChannelFactory is null");
+    public void installPlugin() {
 
-        if (datasourceClientFactoryMap.putIfAbsent(datasourceChannelFactory.getName(), datasourceChannelFactory) != null) {
-            throw PluginException.getInstance(format("Datasource Plugin '%s' is already registered", datasourceChannelFactory.getName()));
-        }
+        PrioritySPIFactory<DataSourceChannelFactory> prioritySPIFactory =
+                new PrioritySPIFactory<>(DataSourceChannelFactory.class);
+        for (Map.Entry<String, DataSourceChannelFactory> entry : prioritySPIFactory.getSPIMap().entrySet()) {
+            final DataSourceChannelFactory factory = entry.getValue();
+            final String name = entry.getKey();
 
-        try {
-            loadDatasourceClient(datasourceChannelFactory.getName());
-        } catch (Exception e) {
-            throw PluginException.getInstance(format("Datasource Plugin '%s' is can not load .", datasourceChannelFactory.getName()));
+            log.info("Registering datasource plugin: {}", name);
+
+            if (datasourceChannelMap.containsKey(name)) {
+                throw new IllegalStateException(format("Duplicate datasource plugins named '%s'", name));
+            }
+
+            loadDatasourceClient(factory);
+
+            log.info("Registered datasource plugin: {}", name);
         }
     }
 
-    private void loadDatasourceClient(String name) {
-        requireNonNull(name, "name is null");
-
-        DataSourceChannelFactory datasourceChannelFactory = datasourceClientFactoryMap.get(name);
-        checkState(datasourceChannelFactory != null, "datasource Plugin {} is not registered", name);
-
-        try (ThreadContextClassLoader ignored = new ThreadContextClassLoader(datasourceChannelFactory.getClass().getClassLoader())) {
-            DataSourceChannel datasourceChannel = datasourceChannelFactory.create();
-            this.datasourceClientMap.put(name, datasourceChannel);
-        }
-
-        logger.info("-- Loaded datasource Plugin {} --", name);
-    }
-
-    @Override
-    public void installPlugin(DolphinSchedulerPlugin dolphinSchedulerPlugin) {
-        for (DataSourceChannelFactory datasourceChannelFactory : dolphinSchedulerPlugin.getDatasourceChannelFactorys()) {
-            logger.info("Registering datasource Plugin '{}'", datasourceChannelFactory.getName());
-            this.addDatasourceClientFactory(datasourceChannelFactory);
-        }
+    private void loadDatasourceClient(DataSourceChannelFactory datasourceChannelFactory) {
+        DataSourceChannel datasourceChannel = datasourceChannelFactory.create();
+        datasourceChannelMap.put(datasourceChannelFactory.getName(), datasourceChannel);
     }
 }

@@ -23,10 +23,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 
-import org.junit.Assert;
-import org.junit.Test;
+import java.util.Map;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -39,7 +42,7 @@ import org.springframework.util.MultiValueMap;
  */
 public class LoginControllerTest extends AbstractControllerTest {
 
-    private static Logger logger = LoggerFactory.getLogger(LoginControllerTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoginControllerTest.class);
 
     @Test
     public void testLogin() throws Exception {
@@ -50,12 +53,15 @@ public class LoginControllerTest extends AbstractControllerTest {
         MvcResult mvcResult = mockMvc.perform(post("/login")
                 .params(paramsMap))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(),result.getCode().intValue());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
         logger.info(mvcResult.getResponse().getContentAsString());
+        Map<String, String> data = (Map<String, String>) result.getData();
+        Assertions.assertEquals(Constants.SECURITY_CONFIG_TYPE_PASSWORD, data.get(Constants.SECURITY_CONFIG_TYPE));
+        Assertions.assertNotEquals(Constants.SECURITY_CONFIG_TYPE_LDAP, data.get(Constants.SECURITY_CONFIG_TYPE));
     }
 
     @Test
@@ -66,11 +72,11 @@ public class LoginControllerTest extends AbstractControllerTest {
                 .header("sessionId", sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
-        Assert.assertEquals(Status.SUCCESS.getCode(),result.getCode().intValue());
+        Assertions.assertEquals(Status.SUCCESS.getCode(), result.getCode().intValue());
         logger.info(mvcResult.getResponse().getContentAsString());
     }
 }

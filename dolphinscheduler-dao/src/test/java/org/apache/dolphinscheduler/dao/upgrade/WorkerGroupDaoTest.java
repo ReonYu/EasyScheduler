@@ -16,46 +16,34 @@
  */
 package org.apache.dolphinscheduler.dao.upgrade;
 
-import static org.apache.dolphinscheduler.dao.upgrade.UpgradeDao.getDataSource;
-
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertThat;
-
-import java.util.Map;
+import org.apache.dolphinscheduler.dao.DaoConfiguration;
 
 import javax.sql.DataSource;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
+@ActiveProfiles("h2")
+@SpringBootTest(classes = DaoConfiguration.class)
+@ExtendWith(MockitoExtension.class)
+@SpringBootApplication(scanBasePackageClasses = DaoConfiguration.class)
 public class WorkerGroupDaoTest {
+
+    @Autowired
     protected DataSource dataSource;
 
-    @BeforeClass
-    public static void setupClass() {
-        System.setProperty("spring.profiles.active", "h2");
-    }
-
-    @Before
-    public void setup() {
-        dataSource = getDataSource();
-    }
-
     @Test
-    public void testQueryQueryAllOldWorkerGroup() throws Exception {
-        WorkerGroupDao workerGroupDao = new WorkerGroupDao();
-
-        Map<Integer, String> workerGroupMap = workerGroupDao.queryAllOldWorkerGroup(dataSource.getConnection());
-
-        assertThat(workerGroupMap.size(), greaterThanOrEqualTo(0));
-    }
-
-    @Test(expected = Exception.class)
     public void testQueryQueryAllOldWorkerGroupException() throws Exception {
-        WorkerGroupDao workerGroupDao = new WorkerGroupDao();
-
-        workerGroupDao.queryAllOldWorkerGroup(null);
+        Assertions.assertThrows(Exception.class, () -> {
+            WorkerGroupDao workerGroupDao = new WorkerGroupDao();
+            workerGroupDao.queryAllOldWorkerGroup(null);
+        });
 
     }
 

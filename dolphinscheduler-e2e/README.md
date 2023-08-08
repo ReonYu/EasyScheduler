@@ -14,13 +14,13 @@ following fields,
 
 ```java
 public final class LoginPage {
-    @FindBy(id = "input-username")
+    @FindBy(id = "inputUsername")
     private WebElement inputUsername;
 
-    @FindBy(id = "input-password")
+    @FindBy(id = "inputPassword")
     private WebElement inputPassword;
 
-    @FindBy(id = "button-login")
+    @FindBy(id = "btnLogin")
     private WebElement buttonLogin;
 }
 ```
@@ -96,3 +96,4 @@ class TenantE2ETest {
 
 - For UI tests, it's common that the pages might need some time to load, or the operations might need some time to
   complete, we can use `await().untilAsserted(() -> {})` to wait for the assertions.
+

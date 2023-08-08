@@ -17,8 +17,8 @@
 
 package org.apache.dolphinscheduler.plugin.task.mr;
 
-import org.apache.dolphinscheduler.spi.task.AbstractParameters;
-import org.apache.dolphinscheduler.spi.task.ResourceInfo;
+import org.apache.dolphinscheduler.plugin.task.api.model.ResourceInfo;
+import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,9 +54,9 @@ public class MapReduceParameters extends AbstractParameters {
     private String appName;
 
     /**
-     * queue
+     * The YARN queue to submit to
      */
-    private String queue;
+    private String yarnQueue;
 
     /**
      * resource list
@@ -101,12 +101,12 @@ public class MapReduceParameters extends AbstractParameters {
         this.appName = appName;
     }
 
-    public String getQueue() {
-        return queue;
+    public String getYarnQueue() {
+        return yarnQueue;
     }
 
-    public void setQueue(String queue) {
-        this.queue = queue;
+    public void setYarnQueue(String yarnQueue) {
+        this.yarnQueue = yarnQueue;
     }
 
     public List<ResourceInfo> getResourceList() {
@@ -152,8 +152,7 @@ public class MapReduceParameters extends AbstractParameters {
         return "mainJar= " + mainJar
                 + "mainClass=" + mainClass
                 + "mainArgs=" + mainArgs
-                + "queue=" + queue
-                + "other mainArgs=" + others
-                ;
+                + "yarnQueue=" + yarnQueue
+                + "other mainArgs=" + others;
     }
 }

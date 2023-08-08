@@ -22,12 +22,13 @@ import static java.util.Objects.requireNonNull;
 import org.apache.dolphinscheduler.alert.api.AlertConstants;
 import org.apache.dolphinscheduler.alert.api.AlertResult;
 import org.apache.dolphinscheduler.alert.api.ShowType;
+import org.apache.dolphinscheduler.common.constants.Constants;
 import org.apache.dolphinscheduler.plugin.alert.email.exception.AlertEmailException;
 import org.apache.dolphinscheduler.plugin.alert.email.template.AlertTemplate;
 import org.apache.dolphinscheduler.plugin.alert.email.template.DefaultHTMLTemplate;
-import org.apache.dolphinscheduler.spi.utils.StringUtils;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.mail.EmailException;
 import org.apache.commons.mail.HtmlEmail;
 
@@ -38,6 +39,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import javax.activation.CommandMap;
 import javax.activation.MailcapCommandMap;
@@ -53,12 +55,12 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.MimeUtility;
 
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
 import com.sun.mail.smtp.SMTPProvider;
 
+@Slf4j
 public final class MailSender {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(MailSender.class);
 
     private final List<String> receivers;
     private final List<String> receiverCcs;
@@ -102,12 +104,14 @@ public final class MailSender {
         requireNonNull(mailSenderEmail, MailParamsConstants.NAME_MAIL_SENDER + mustNotNull);
 
         enableSmtpAuth = config.get(MailParamsConstants.NAME_MAIL_SMTP_AUTH);
-
         mailUser = config.get(MailParamsConstants.NAME_MAIL_USER);
-        requireNonNull(mailUser, MailParamsConstants.NAME_MAIL_USER + mustNotNull);
-
         mailPasswd = config.get(MailParamsConstants.NAME_MAIL_PASSWD);
-        requireNonNull(mailPasswd, MailParamsConstants.NAME_MAIL_PASSWD + mustNotNull);
+
+        // Needs to check user && password only if enableSmtpAuth is true
+        if (Constants.STRING_TRUE.equals(enableSmtpAuth)) {
+            requireNonNull(mailUser, MailParamsConstants.NAME_MAIL_USER + mustNotNull);
+            requireNonNull(mailPasswd, MailParamsConstants.NAME_MAIL_PASSWD + mustNotNull);
+        }
 
         mailUseStartTLS = config.get(MailParamsConstants.NAME_MAIL_SMTP_STARTTLS_ENABLE);
         requireNonNull(mailUseStartTLS, MailParamsConstants.NAME_MAIL_SMTP_STARTTLS_ENABLE + mustNotNull);
@@ -176,7 +180,7 @@ public final class MailSender {
                 }
 
                 if (CollectionUtils.isNotEmpty(receiverCcs)) {
-                    //cc
+                    // cc
                     for (String receiverCc : receiverCcs) {
                         email.addCc(receiverCc);
                     }
@@ -186,12 +190,13 @@ public final class MailSender {
             } catch (Exception e) {
                 handleException(alertResult, e);
             }
-        } else if (showType.equals(ShowType.ATTACHMENT.getDescp()) || showType.equals(ShowType.TABLEATTACHMENT.getDescp())) {
+        } else if (showType.equals(ShowType.ATTACHMENT.getDescp())
+                || showType.equals(ShowType.TABLE_ATTACHMENT.getDescp())) {
             try {
 
                 String partContent = (showType.equals(ShowType.ATTACHMENT.getDescp())
-                    ? "Please see the attachment " + title + EmailConstants.EXCEL_SUFFIX_XLSX
-                    : htmlTable(content, false));
+                        ? "Please see the attachment " + title + EmailConstants.EXCEL_SUFFIX_XLSX
+                        : htmlTable(content, false));
 
                 attachment(title, content, partContent);
 
@@ -292,6 +297,7 @@ public final class MailSender {
         props.setProperty(MailParamsConstants.MAIL_SMTP_SSL_TRUST, sslTrust);
 
         Authenticator auth = new Authenticator() {
+
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
                 // mail username and password
@@ -307,7 +313,8 @@ public final class MailSender {
     /**
      * attach content
      */
-    private void attachContent(String title, String content, String partContent, MimeMessage msg) throws MessagingException, IOException {
+    private void attachContent(String title, String content, String partContent,
+                               MimeMessage msg) throws MessagingException, IOException {
         /*
          * set receiverCc
          */
@@ -325,13 +332,16 @@ public final class MailSender {
         part1.setContent(partContent, EmailConstants.TEXT_HTML_CHARSET_UTF_8);
         // set attach file
         MimeBodyPart part2 = new MimeBodyPart();
-        File file = new File(xlsFilePath + EmailConstants.SINGLE_SLASH + title + EmailConstants.EXCEL_SUFFIX_XLSX);
+        // add random uuid to filename to avoid potential issue
+        String randomFilename = title + UUID.randomUUID();
+        File file =
+                new File(xlsFilePath + EmailConstants.SINGLE_SLASH + randomFilename + EmailConstants.EXCEL_SUFFIX_XLSX);
         if (!file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
         // make excel file
 
-        ExcelUtils.genExcelFile(content, title, xlsFilePath);
+        ExcelUtils.genExcelFile(content, randomFilename, xlsFilePath);
 
         part2.attachFile(file);
         part2.setFileName(MimeUtility.encodeText(title + EmailConstants.EXCEL_SUFFIX_XLSX, EmailConstants.UTF_8, "B"));
@@ -348,7 +358,8 @@ public final class MailSender {
     /**
      * the string object map
      */
-    private AlertResult getStringObjectMap(String title, String content, AlertResult alertResult, HtmlEmail email) throws EmailException {
+    private AlertResult getStringObjectMap(String title, String content, AlertResult alertResult,
+                                           HtmlEmail email) throws EmailException {
 
         /*
          * the subject of the message to be sent

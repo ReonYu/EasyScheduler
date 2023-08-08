@@ -17,6 +17,8 @@
 
 package org.apache.dolphinscheduler.api.interceptor;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import org.apache.dolphinscheduler.api.ApiApplicationServer;
@@ -26,41 +28,47 @@ import org.apache.dolphinscheduler.common.enums.UserType;
 import org.apache.dolphinscheduler.dao.entity.User;
 import org.apache.dolphinscheduler.dao.mapper.UserMapper;
 
+import java.util.Date;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.transaction.annotation.Transactional;
 
 @ActiveProfiles(value = {ProfileType.H2})
-@RunWith(SpringRunner.class)
 @SpringBootTest(classes = ApiApplicationServer.class)
+@Transactional
+@Rollback
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class LoginHandlerInterceptorTest {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginHandlerInterceptorTest.class);
 
     @Autowired
     LoginHandlerInterceptor interceptor;
-    @MockBean
+    @MockBean(name = "authenticator")
     private Authenticator authenticator;
-    @MockBean
-    private UserMapper    userMapper;
+    @MockBean(name = "userMapper")
+    private UserMapper userMapper;
 
     @Test
     public void testPreHandle() {
         HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
         HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
         // test no token and no cookie
-        Assert.assertFalse(interceptor.preHandle(request, response, null));
+        Assertions.assertFalse(interceptor.preHandle(request, response, null));
 
         User mockUser = new User();
         mockUser.setId(1);
@@ -69,17 +77,17 @@ public class LoginHandlerInterceptorTest {
 
         // test no token
         when(authenticator.getAuthUser(request)).thenReturn(mockUser);
-        Assert.assertTrue(interceptor.preHandle(request, response, null));
+        Assertions.assertTrue(interceptor.preHandle(request, response, null));
 
         // test token
         String token = "123456";
         when(request.getHeader("token")).thenReturn(token);
-        when(userMapper.queryUserByToken(token)).thenReturn(mockUser);
-        Assert.assertTrue(interceptor.preHandle(request, response, null));
+        when(userMapper.queryUserByToken(eq(token), any(Date.class))).thenReturn(mockUser);
+        Assertions.assertTrue(interceptor.preHandle(request, response, null));
 
         // test disable user
         mockUser.setState(0);
         when(authenticator.getAuthUser(request)).thenReturn(mockUser);
-        Assert.assertFalse(interceptor.preHandle(request, response, null));
+        Assertions.assertFalse(interceptor.preHandle(request, response, null));
     }
 }

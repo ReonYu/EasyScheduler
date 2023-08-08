@@ -36,7 +36,7 @@ public interface AlertPluginInstanceService {
      * @param pluginInstanceParams plugin instance params
      * @return result
      */
-    Map<String, Object> create(User loginUser,int pluginDefineId,String instanceName,String pluginInstanceParams);
+    Map<String, Object> create(User loginUser, int pluginDefineId, String instanceName, String pluginInstanceParams);
 
     /**
      * update
@@ -46,7 +46,8 @@ public interface AlertPluginInstanceService {
      * @param pluginInstanceParams plugin instance params
      * @return result
      */
-    Map<String, Object> update(User loginUser, int alertPluginInstanceId,String instanceName,String pluginInstanceParams);
+    Map<String, Object> update(User loginUser, int alertPluginInstanceId, String instanceName,
+                               String pluginInstanceParams);
 
     /**
      * delete alert plugin instance
@@ -82,9 +83,11 @@ public interface AlertPluginInstanceService {
 
     /**
      * queryPluginPage
-     * @param pageIndex page index
+     * @param loginUser login user
+     * @param searchVal search value
+     * @param pageNo    page index
      * @param pageSize  page size
      * @return plugins
      */
-    Result queryPluginPage(int pageIndex, int pageSize);
+    Result listPaging(User loginUser, String searchVal, int pageNo, int pageSize);
 }

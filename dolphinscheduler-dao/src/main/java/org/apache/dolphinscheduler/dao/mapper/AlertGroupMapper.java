@@ -18,7 +18,6 @@
 package org.apache.dolphinscheduler.dao.mapper;
 
 import org.apache.dolphinscheduler.dao.entity.AlertGroup;
-import org.apache.dolphinscheduler.dao.vo.AlertGroupVo;
 
 import org.apache.ibatis.annotations.Param;
 
@@ -33,7 +32,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
  */
 public interface AlertGroupMapper extends BaseMapper<AlertGroup> {
 
-
     /**
      * alertgroup page
      * @param page page
@@ -42,7 +40,6 @@ public interface AlertGroupMapper extends BaseMapper<AlertGroup> {
      */
     IPage<AlertGroup> queryAlertGroupPage(Page page,
                                           @Param("groupName") String groupName);
-
 
     /**
      * query by group name
@@ -85,11 +82,21 @@ public interface AlertGroupMapper extends BaseMapper<AlertGroup> {
     String queryAlertGroupInstanceIdsById(@Param("alertGroupId") int alertGroupId);
 
     /**
-     * query alertGroupVo page list
-     * @param page page
-     * @param groupName groupName
-     * @return IPage<AlertGroupVo>: include alert group id and group_name
+     * list authorized AlertGroup
+     * @param userId
+     * @param alertGroupsIds
+     * @return
      */
-    IPage<AlertGroupVo> queryAlertGroupVo(Page<AlertGroupVo> page,
-                                          @Param("groupName") String groupName);
+    <T> List<AlertGroup> listAuthorizedAlertGroupList(@Param("userId") int userId,
+                                                      @Param("alertGroupsIds") List<Integer> alertGroupsIds);
+
+    /**
+     * queryAlertGroupPageByIds
+     * @param page
+     * @param ids
+     * @param searchVal
+     * @return
+     */
+    IPage<AlertGroup> queryAlertGroupPageByIds(Page<AlertGroup> page, @Param("ids") List<Integer> ids,
+                                               @Param("searchVal") String searchVal);
 }

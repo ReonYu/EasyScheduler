@@ -17,166 +17,81 @@
 
 package org.apache.dolphinscheduler.common.utils;
 
-import static org.apache.dolphinscheduler.common.Constants.COMMON_PROPERTIES_PATH;
+import static org.apache.dolphinscheduler.common.constants.Constants.COMMON_PROPERTIES_PATH;
+import static org.apache.dolphinscheduler.common.constants.Constants.RESOURCE_STORAGE_TYPE;
 
-import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.spi.enums.ResUploadType;
+import org.apache.dolphinscheduler.common.config.IPropertyDelegate;
+import org.apache.dolphinscheduler.common.config.ImmutablePriorityPropertyDelegate;
+import org.apache.dolphinscheduler.common.enums.ResUploadType;
 
-import org.apache.directory.api.util.Strings;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
+import com.google.common.base.Strings;
+
+@Slf4j
+@UtilityClass
 public class PropertyUtils {
-    private static final Logger logger = LoggerFactory.getLogger(PropertyUtils.class);
 
-    private static final Properties properties = new Properties();
+    // todo: add another implementation for zookeeper/etcd/consul/xx
+    private static final IPropertyDelegate propertyDelegate =
+            new ImmutablePriorityPropertyDelegate(COMMON_PROPERTIES_PATH);
 
-    private PropertyUtils() {
-        throw new UnsupportedOperationException("Construct PropertyUtils");
-    }
-
-    static {
-        loadPropertyFile(COMMON_PROPERTIES_PATH);
-    }
-
-    public static synchronized void loadPropertyFile(String... propertyFiles) {
-        for (String fileName : propertyFiles) {
-            try (InputStream fis = PropertyUtils.class.getResourceAsStream(fileName);) {
-                properties.load(fis);
-
-            } catch (IOException e) {
-                logger.error(e.getMessage(), e);
-                System.exit(1);
-            }
-        }
-
-        // Override from system properties
-        System.getProperties().forEach((k, v) -> {
-            final String key = String.valueOf(k);
-            logger.info("Overriding property from system property: {}", key);
-            PropertyUtils.setValue(key, String.valueOf(v));
-        });
-    }
-
-    /**
-     * @return judge whether resource upload startup
-     */
-    public static boolean getResUploadStartupState() {
-        String resUploadStartupType = PropertyUtils.getUpperCaseString(Constants.RESOURCE_STORAGE_TYPE);
-        ResUploadType resUploadType = ResUploadType.valueOf(resUploadStartupType);
-        return resUploadType == ResUploadType.HDFS || resUploadType == ResUploadType.S3;
-    }
-
-    /**
-     * get property value
-     *
-     * @param key property name
-     * @return property value
-     */
     public static String getString(String key) {
-        return properties.getProperty(key.trim());
+        return propertyDelegate.get(key.trim());
     }
 
-    /**
-     * get property value with upper case
-     *
-     * @param key property name
-     * @return property value  with upper case
-     */
-    public static String getUpperCaseString(String key) {
-        return properties.getProperty(key.trim()).toUpperCase();
-    }
-
-    /**
-     * get property value
-     *
-     * @param key property name
-     * @param defaultVal default value
-     * @return property value
-     */
     public static String getString(String key, String defaultVal) {
-        String val = properties.getProperty(key.trim());
-        return val == null ? defaultVal : val;
-    }
-
-    /**
-     * get property value
-     *
-     * @param key property name
-     * @return get property int value , if key == null, then return -1
-     */
-    public static int getInt(String key) {
-        return getInt(key, -1);
-    }
-
-    /**
-     * @param key key
-     * @param defaultValue default value
-     * @return property value
-     */
-    public static int getInt(String key, int defaultValue) {
-        String value = getString(key);
-        if (value == null) {
-            return defaultValue;
-        }
-
-        try {
-            return Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            logger.info(e.getMessage(), e);
-        }
-        return defaultValue;
-    }
-
-    /**
-     * get property value
-     *
-     * @param key property name
-     * @return property value
-     */
-    public static boolean getBoolean(String key) {
-        String value = properties.getProperty(key.trim());
-        if (null != value) {
-            return Boolean.parseBoolean(value);
-        }
-
-        return false;
-    }
-
-    /**
-     * get property value
-     *
-     * @param key property name
-     * @param defaultValue default value
-     * @return property value
-     */
-    public static Boolean getBoolean(String key, boolean defaultValue) {
-        String value = properties.getProperty(key.trim());
-        if (null != value) {
-            return Boolean.parseBoolean(value);
-        }
-
-        return defaultValue;
-    }
-
-    /**
-     * get property long value
-     *
-     * @param key key
-     * @param defaultVal default value
-     * @return property value
-     */
-    public static long getLong(String key, long defaultVal) {
         String val = getString(key);
-        return val == null ? defaultVal : Long.parseLong(val);
+        return Strings.isNullOrEmpty(val) ? defaultVal : val;
+    }
+
+    public static String getUpperCaseString(String key) {
+        String val = getString(key);
+        return Strings.isNullOrEmpty(val) ? val : val.toUpperCase();
+    }
+
+    public static boolean isResourceStorageStartup() {
+        String resourceStorageType = getString(RESOURCE_STORAGE_TYPE, ResUploadType.NONE.name());
+        ResUploadType resUploadType = ResUploadType.valueOf(resourceStorageType.toUpperCase());
+        return resUploadType != ResUploadType.NONE;
+    }
+
+    public static Integer getInt(String key) {
+        return propertyDelegate.getInt(key.trim());
+    }
+
+    public static Integer getInt(String key, int defaultValue) {
+        return propertyDelegate.getInt(key, defaultValue);
+    }
+
+    public static Boolean getBoolean(String key) {
+        return propertyDelegate.getBoolean(key);
+    }
+
+    public static Boolean getBoolean(String key, Boolean defaultValue) {
+        return propertyDelegate.getBoolean(key, defaultValue);
+    }
+
+    public static Long getLong(String key) {
+        return propertyDelegate.getLong(key);
+    }
+
+    public static Long getLong(String key, Long defaultValue) {
+        return propertyDelegate.getLong(key, defaultValue);
+    }
+
+    public static Double getDouble(String key) {
+        return propertyDelegate.getDouble(key);
+    }
+
+    public static Double getDouble(String key, Double defaultValue) {
+        return propertyDelegate.getDouble(key, defaultValue);
     }
 
     /**
@@ -185,35 +100,17 @@ public class PropertyUtils {
      * @param prefix prefix to search
      * @return all properties with specified prefix
      */
-    public static Map<String, String> getPrefixedProperties(String prefix) {
+    public static Map<String, String> getByPrefix(String prefix) {
         Map<String, String> matchedProperties = new HashMap<>();
-        for (String propName : properties.stringPropertyNames()) {
+        for (String propName : propertyDelegate.getPropertyKeys()) {
             if (propName.startsWith(prefix)) {
-                matchedProperties.put(propName, properties.getProperty(propName));
+                matchedProperties.put(propName, propertyDelegate.get(propName));
             }
         }
         return matchedProperties;
     }
 
-    public static void setValue(String key, String value) {
-        properties.setProperty(key, value);
+    public static <T> Set<T> getSet(String key, Function<String, Set<T>> transformFunction, Set<T> defaultValue) {
+        return propertyDelegate.get(key, transformFunction, defaultValue);
     }
-
-    public static Map<String, String> getPropertiesByPrefix(String prefix) {
-        if (Strings.isEmpty(prefix)) {
-            return null;
-        }
-        Set<Object> keys = properties.keySet();
-        if (keys.isEmpty()) {
-            return null;
-        }
-        Map<String, String> propertiesMap = new HashMap<>();
-        keys.forEach(k -> {
-            if (k.toString().contains(prefix)) {
-                propertiesMap.put(k.toString().replaceFirst(prefix + ".", ""), properties.getProperty((String) k));
-            }
-        });
-        return propertiesMap;
-    }
-
 }

@@ -18,14 +18,16 @@
 package org.apache.dolphinscheduler.api.controller;
 
 import org.apache.dolphinscheduler.api.ApiApplicationServer;
+import org.apache.dolphinscheduler.api.controller.AbstractControllerTest.RegistryServer;
 import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.service.SessionService;
 import org.apache.dolphinscheduler.api.service.UsersService;
-import org.apache.dolphinscheduler.common.Constants;
-import org.apache.dolphinscheduler.common.enums.ProfileType;
+import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.common.constants.Constants;
+import org.apache.dolphinscheduler.dao.DaoConfiguration;
 import org.apache.dolphinscheduler.dao.entity.User;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.curator.test.TestingServer;
 
 import java.text.MessageFormat;
@@ -34,36 +36,28 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
 
 /**
  * abstract controller test
  */
-@ActiveProfiles(value = {ProfileType.H2})
-@RunWith(SpringRunner.class)
-@SpringBootTest(classes = ApiApplicationServer.class)
-@Ignore
-public class AbstractControllerTest {
+@SpringBootTest(classes = {ApiApplicationServer.class, DaoConfiguration.class, RegistryServer.class})
+@AutoConfigureMockMvc
+@DirtiesContext
+public abstract class AbstractControllerTest {
 
     public static final String SESSION_ID = "sessionId";
 
-    protected MockMvc mockMvc;
-
     @Autowired
-    private WebApplicationContext webApplicationContext;
+    protected MockMvc mockMvc;
 
     @Autowired
     private SessionService sessionService;
@@ -75,15 +69,13 @@ public class AbstractControllerTest {
 
     protected String sessionId;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
-
         user = usersService.queryUser(1);
         createSession(user);
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         sessionService.signOut("127.0.0.1", user);
     }
@@ -95,7 +87,7 @@ public class AbstractControllerTest {
         String session = sessionService.createSession(loginUser, "127.0.0.1");
         sessionId = session;
 
-        Assert.assertFalse(StringUtils.isEmpty(session));
+        Assertions.assertFalse(StringUtils.isEmpty(session));
     }
 
     public Map<String, Object> success() {
@@ -113,13 +105,22 @@ public class AbstractControllerTest {
         }
     }
 
+    public void putMsg(Result<Object> result, Status status, Object... statusParams) {
+        result.setCode(status.getCode());
+        if (statusParams != null && statusParams.length > 0) {
+            result.setMsg(MessageFormat.format(status.getMsg(), statusParams));
+        } else {
+            result.setMsg(status.getMsg());
+        }
+    }
+
     @Configuration
-    @Profile(ProfileType.H2)
     public static class RegistryServer {
+
         @PostConstruct
         public void startEmbedRegistryServer() throws Exception {
             final TestingServer server = new TestingServer(true);
-            System.setProperty("registry.servers", server.getConnectString());
+            System.setProperty("registry.zookeeper.connect-string", server.getConnectString());
         }
     }
 }

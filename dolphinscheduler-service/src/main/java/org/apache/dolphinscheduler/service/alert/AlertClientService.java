@@ -18,25 +18,23 @@
 package org.apache.dolphinscheduler.service.alert;
 
 import org.apache.dolphinscheduler.remote.NettyRemotingClient;
-import org.apache.dolphinscheduler.remote.command.Command;
-import org.apache.dolphinscheduler.remote.command.alert.AlertSendRequestCommand;
-import org.apache.dolphinscheduler.remote.command.alert.AlertSendResponseCommand;
-import org.apache.dolphinscheduler.remote.config.NettyClientConfig;
+import org.apache.dolphinscheduler.remote.command.Message;
+import org.apache.dolphinscheduler.remote.command.alert.AlertSendRequest;
+import org.apache.dolphinscheduler.remote.command.alert.AlertSendResponse;
+import org.apache.dolphinscheduler.remote.factory.NettyRemotingClientFactory;
 import org.apache.dolphinscheduler.remote.utils.Host;
 import org.apache.dolphinscheduler.remote.utils.JsonSerializer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AlertClientService {
+import lombok.extern.slf4j.Slf4j;
 
-    private static final Logger logger = LoggerFactory.getLogger(AlertClientService.class);
-
-    private final NettyClientConfig clientConfig;
+@Slf4j
+public class AlertClientService implements AutoCloseable {
 
     private final NettyRemotingClient client;
 
-    private volatile boolean isRunning;
+    private final AtomicBoolean isRunning;
 
     private String host;
 
@@ -51,29 +49,23 @@ public class AlertClientService {
      * alert client
      */
     public AlertClientService() {
-        this.clientConfig = new NettyClientConfig();
-        this.client = new NettyRemotingClient(clientConfig);
-        this.isRunning = true;
-    }
-
-    /**
-     * alert client
-     */
-    public AlertClientService(String host, int port) {
-        this.clientConfig = new NettyClientConfig();
-        this.client = new NettyRemotingClient(clientConfig);
-        this.isRunning = true;
-        this.host = host;
-        this.port = port;
+        this.client = NettyRemotingClientFactory.buildNettyRemotingClient();
+        this.isRunning = new AtomicBoolean(true);
     }
 
     /**
      * close
      */
+    @Override
     public void close() {
+        if (isRunning.compareAndSet(true, false)) {
+            log.warn("Alert client is already closed");
+            return;
+        }
+
+        log.info("Alter client closing");
         this.client.close();
-        this.isRunning = false;
-        logger.info("alter client closed");
+        log.info("Alter client closed");
     }
 
     /**
@@ -83,8 +75,8 @@ public class AlertClientService {
      * @param content
      * @return
      */
-    public AlertSendResponseCommand sendAlert(int groupId, String title,  String content) {
-        return this.sendAlert(this.host,this.port,groupId,title,content);
+    public AlertSendResponse sendAlert(int groupId, String title, String content, int strategy) {
+        return this.sendAlert(this.host, this.port, groupId, title, content, strategy);
     }
 
     /**
@@ -96,18 +88,20 @@ public class AlertClientService {
      * @param content content
      * @return AlertSendResponseCommand
      */
-    public AlertSendResponseCommand sendAlert(String host, int port, int groupId, String title,  String content) {
-        logger.info("sync alert send, host : {}, port : {}, groupId : {}, title : {} ", host, port, groupId, title);
-        AlertSendRequestCommand request = new AlertSendRequestCommand(groupId, title, content);
+    public AlertSendResponse sendAlert(String host, int port, int groupId, String title, String content,
+                                       int strategy) {
+        log.info("sync alert send, host : {}, port : {}, groupId : {}, title : {} , strategy : {} ", host, port,
+                groupId, title, strategy);
+        AlertSendRequest request = new AlertSendRequest(groupId, title, content, strategy);
         final Host address = new Host(host, port);
         try {
-            Command command = request.convert2Command();
-            Command response = this.client.sendSync(address, command, ALERT_REQUEST_TIMEOUT);
+            Message message = request.convert2Command();
+            Message response = this.client.sendSync(address, message, ALERT_REQUEST_TIMEOUT);
             if (response != null) {
-                return JsonSerializer.deserialize(response.getBody(), AlertSendResponseCommand.class);
+                return JsonSerializer.deserialize(response.getBody(), AlertSendResponse.class);
             }
         } catch (Exception e) {
-            logger.error("sync alert send error", e);
+            log.error("sync alert send error", e);
         } finally {
             this.client.closeChannel(address);
         }
@@ -115,6 +109,6 @@ public class AlertClientService {
     }
 
     public boolean isRunning() {
-        return isRunning;
+        return isRunning.get();
     }
 }

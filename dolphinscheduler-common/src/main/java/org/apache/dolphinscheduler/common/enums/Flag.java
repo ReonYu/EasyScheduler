@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.dolphinscheduler.common.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
@@ -25,8 +26,10 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
  * have_arr_variables
  * have_map_variables
  * have_alert
+ * is_cache
  */
 public enum Flag {
+
     /**
      * 0 no
      * 1 yes

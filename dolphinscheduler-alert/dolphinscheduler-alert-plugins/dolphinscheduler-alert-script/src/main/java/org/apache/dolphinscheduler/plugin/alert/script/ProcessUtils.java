@@ -19,10 +19,10 @@ package org.apache.dolphinscheduler.plugin.alert.script;
 
 import java.io.IOException;
 
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public final class ProcessUtils {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(ProcessUtils.class);
 
     private ProcessUtils() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");

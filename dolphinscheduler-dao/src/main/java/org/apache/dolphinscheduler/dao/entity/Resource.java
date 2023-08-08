@@ -20,264 +20,147 @@ package org.apache.dolphinscheduler.dao.entity;
 import org.apache.dolphinscheduler.spi.enums.ResourceType;
 
 import java.util.Date;
+import java.util.Objects;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.annotation.JsonFormat;
 
+@Data
+@NoArgsConstructor
 @TableName("t_ds_resources")
 public class Resource {
-  /**
-   * id
-   */
-  @TableId(value="id", type=IdType.AUTO)
-  private int id;
 
-  /**
-   * parent id
-   */
-  private int pid;
+    /**
+     * id
+     */
+    @TableId(value = "id", type = IdType.AUTO)
+    private Integer id;
 
-  /**
-   * resource alias
-   */
-  private String alias;
+    /**
+     * parent id
+     */
+    private int pid;
 
-  /**
-   * full name
-   */
-  private String fullName;
+    /**
+     * resource alias
+     */
+    private String alias;
 
-  /**
-   * is directory
-   */
-  private boolean isDirectory=false;
+    /**
+     * full name
+     */
+    private String fullName;
 
-  /**
-   * description
-   */
-  private String description;
+    /**
+     * is directory
+     */
+    private boolean isDirectory = false;
 
-  /**
-   * file alias
-   */
-  private String fileName;
+    /**
+     * description
+     */
+    private String description;
 
-  /**
-   * user id
-   */
-  private int userId;
+    /**
+     * file alias
+     */
+    private String fileName;
 
-  /**
-   * resource type
-   */
-  private ResourceType type;
+    /**
+     * user id
+     */
+    private int userId;
 
-  /**
-   * resource size
-   */
-  private long size;
+    /**
+     * resource type
+     */
+    private ResourceType type;
 
-  /**
-   * create time
-   */
-  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
-  private Date createTime;
+    /**
+     * resource size
+     */
+    private long size;
 
-  /**
-   * update time
-   */
-  @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone="GMT+8")
-  private Date updateTime;
+    /**
+     * create time
+     */
+    private Date createTime;
 
-  public Resource() {
-  }
+    /**
+     * update time
+     */
+    private Date updateTime;
 
-  public Resource(int id, String alias, String fileName, String description, int userId,
-                  ResourceType type, long size,
-                  Date createTime, Date updateTime) {
-    this.id = id;
-    this.alias = alias;
-    this.fileName = fileName;
-    this.description = description;
-    this.userId = userId;
-    this.type = type;
-    this.size = size;
-    this.createTime = createTime;
-    this.updateTime = updateTime;
-  }
+    /**
+     * user name
+     */
+    @TableField(exist = false)
+    private String userName;
 
-  public Resource(int id, int pid, String alias, String fullName, boolean isDirectory) {
-    this.id = id;
-    this.pid = pid;
-    this.alias = alias;
-    this.fullName = fullName;
-    this.isDirectory = isDirectory;
-  }
-
-  /*public Resource(String alias, String fileName, String description, int userId, ResourceType type, long size, Date createTime, Date updateTime) {
-    this.alias = alias;
-    this.fileName = fileName;
-    this.description = description;
-    this.userId = userId;
-    this.type = type;
-    this.size = size;
-    this.createTime = createTime;
-    this.updateTime = updateTime;
-  }*/
-
-  public Resource(int pid, String alias, String fullName, boolean isDirectory, String description, String fileName, int userId, ResourceType type, long size, Date createTime, Date updateTime) {
-    this.pid = pid;
-    this.alias = alias;
-    this.fullName = fullName;
-    this.isDirectory = isDirectory;
-    this.description = description;
-    this.fileName = fileName;
-    this.userId = userId;
-    this.type = type;
-    this.size = size;
-    this.createTime = createTime;
-    this.updateTime = updateTime;
-  }
-
-  public int getId() {
-    return id;
-  }
-
-  public void setId(int id) {
-    this.id = id;
-  }
-
-  public String getAlias() {
-    return alias;
-  }
-
-  public void setAlias(String alias) {
-    this.alias = alias;
-  }
-
-  public int getPid() {
-    return pid;
-  }
-
-  public void setPid(int pid) {
-    this.pid = pid;
-  }
-
-  public String getFullName() {
-    return fullName;
-  }
-
-  public void setFullName(String fullName) {
-    this.fullName = fullName;
-  }
-
-  public boolean isDirectory() {
-    return isDirectory;
-  }
-
-  public void setDirectory(boolean directory) {
-    isDirectory = directory;
-  }
-
-  public String getFileName() {
-    return fileName;
-  }
-
-  public void setFileName(String fileName) {
-    this.fileName = fileName;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public int getUserId() {
-    return userId;
-  }
-
-  public void setUserId(int userId) {
-    this.userId = userId;
-  }
-
-
-  public ResourceType getType() {
-    return type;
-  }
-
-  public void setType(ResourceType type) {
-    this.type = type;
-  }
-
-  public long getSize() {
-    return size;
-  }
-
-  public void setSize(long size) {
-    this.size = size;
-  }
-
-  public Date getCreateTime() {
-    return createTime;
-  }
-
-  public void setCreateTime(Date createTime) {
-    this.createTime = createTime;
-  }
-
-  public Date getUpdateTime() {
-    return updateTime;
-  }
-
-  public void setUpdateTime(Date updateTime) {
-    this.updateTime = updateTime;
-  }
-
-  @Override
-  public String toString() {
-    return "Resource{" +
-            "id=" + id +
-            ", pid=" + pid +
-            ", alias='" + alias + '\'' +
-            ", fullName='" + fullName + '\'' +
-            ", isDirectory=" + isDirectory +
-            ", description='" + description + '\'' +
-            ", fileName='" + fileName + '\'' +
-            ", userId=" + userId +
-            ", type=" + type +
-            ", size=" + size +
-            ", createTime=" + createTime +
-            ", updateTime=" + updateTime +
-            '}';
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-        return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-        return false;
+    public Resource(int id, String alias, String fileName, String description, int userId,
+                    ResourceType type, long size,
+                    Date createTime, Date updateTime) {
+        this.id = id;
+        this.alias = alias;
+        this.fileName = fileName;
+        this.description = description;
+        this.userId = userId;
+        this.type = type;
+        this.size = size;
+        this.createTime = createTime;
+        this.updateTime = updateTime;
     }
 
-    Resource resource = (Resource) o;
-
-    if (id != resource.id) {
-        return false;
+    public Resource(int id, int pid, String alias, String fullName, boolean isDirectory) {
+        this.id = id;
+        this.pid = pid;
+        this.alias = alias;
+        this.fullName = fullName;
+        this.isDirectory = isDirectory;
     }
-    return alias.equals(resource.alias);
 
-  }
+    public Resource(int pid, String alias, String fullName, boolean isDirectory, String description, String fileName,
+                    int userId, ResourceType type, long size, Date createTime, Date updateTime) {
+        this.pid = pid;
+        this.alias = alias;
+        this.fullName = fullName;
+        this.isDirectory = isDirectory;
+        this.description = description;
+        this.fileName = fileName;
+        this.userId = userId;
+        this.type = type;
+        this.size = size;
+        this.createTime = createTime;
+        this.updateTime = updateTime;
+    }
 
-  @Override
-  public int hashCode() {
-    int result = id;
-    result = 31 * result + alias.hashCode();
-    return result;
-  }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        Resource resource = (Resource) o;
+
+        if (!Objects.equals(id, resource.id)) {
+            return false;
+        }
+        return alias.equals(resource.alias);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + alias.hashCode();
+        return result;
+    }
 }

@@ -18,51 +18,67 @@
 package org.apache.dolphinscheduler.dao;
 
 import org.apache.dolphinscheduler.common.enums.AlertStatus;
+import org.apache.dolphinscheduler.common.enums.ProfileType;
 import org.apache.dolphinscheduler.dao.entity.Alert;
 
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.annotation.Transactional;
 
+@ActiveProfiles(ProfileType.H2)
+@ExtendWith(MockitoExtension.class)
+@SpringBootApplication(scanBasePackageClasses = DaoConfiguration.class)
+@SpringBootTest(classes = DaoConfiguration.class)
 @Transactional
+@Rollback
+@EnableTransactionManagement
 public class AlertDaoTest {
 
-    @BeforeClass
-    public static void setUp() {
-        System.setProperty("spring.profiles.active", "h2");
-    }
+    @Autowired
+    private AlertDao alertDao;
 
     @Test
     public void testAlertDao() {
-        AlertDao alertDao = DaoFactory.getDaoInstance(AlertDao.class);
         Alert alert = new Alert();
         alert.setTitle("Mysql Exception");
         alert.setContent("[\"alarm time：2018-02-05\", \"service name：MYSQL_ALTER\", \"alarm name：MYSQL_ALTER_DUMP\", "
-            + "\"get the alarm exception.！，interface error，exception information：timed out\", \"request address：http://blog.csdn.net/dreamInTheWorld/article/details/78539286\"]");
+                + "\"get the alarm exception.！，interface error，exception information：timed out\", \"request address：http://blog.csdn.net/dreamInTheWorld/article/details/78539286\"]");
         alert.setAlertGroupId(1);
         alert.setAlertStatus(AlertStatus.WAIT_EXECUTION);
         alertDao.addAlert(alert);
 
         List<Alert> alerts = alertDao.listPendingAlerts();
-        Assert.assertNotNull(alerts);
-        Assert.assertNotEquals(0, alerts.size());
+        Assertions.assertNotNull(alerts);
+        Assertions.assertNotEquals(0, alerts.size());
     }
 
     @Test
-    public void testSendServerStopedAlert() {
-        AlertDao alertDao = DaoFactory.getDaoInstance(AlertDao.class);
+    public void testAddAlertSendStatus() {
+        int insertCount = alertDao.addAlertSendStatus(AlertStatus.EXECUTION_SUCCESS, "success", 1, 1);
+        Assertions.assertEquals(1, insertCount);
+    }
+
+    @Test
+    public void testSendServerStoppedAlert() {
         int alertGroupId = 1;
         String host = "127.0.0.998165432";
         String serverType = "Master";
-        alertDao.sendServerStopedAlert(alertGroupId, host, serverType);
-        alertDao.sendServerStopedAlert(alertGroupId, host, serverType);
+        alertDao.sendServerStoppedAlert(alertGroupId, host, serverType);
+        alertDao.sendServerStoppedAlert(alertGroupId, host, serverType);
         long count = alertDao.listPendingAlerts()
-                             .stream()
-                             .filter(alert -> alert.getContent().contains(host))
-                             .count();
-        Assert.assertEquals(1L, count);
+                .stream()
+                .filter(alert -> alert.getContent().contains(host))
+                .count();
+        Assertions.assertEquals(1L, count);
     }
 }

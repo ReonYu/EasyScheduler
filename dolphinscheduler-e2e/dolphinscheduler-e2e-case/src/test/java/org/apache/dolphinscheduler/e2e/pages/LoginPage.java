@@ -19,29 +19,58 @@
 
 package org.apache.dolphinscheduler.e2e.pages;
 
+import org.apache.dolphinscheduler.e2e.pages.common.NavBarPage;
+import org.apache.dolphinscheduler.e2e.pages.security.TenantPage;
+
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.FindBy;
-import org.openqa.selenium.support.PageFactory;
+import org.openqa.selenium.support.FindBys;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 import lombok.Getter;
+import lombok.SneakyThrows;
+
+import java.time.Duration;
 
 @Getter
-public final class LoginPage {
-    private final RemoteWebDriver driver;
-
-    @FindBy(id = "input-username")
+public final class LoginPage extends NavBarPage {
+    @FindBys({
+        @FindBy(className = "input-user-name"),
+        @FindBy(tagName = "input"),
+    })
     private WebElement inputUsername;
 
-    @FindBy(id = "input-password")
+    @FindBys( {
+        @FindBy(className = "input-password"),
+        @FindBy(tagName = "input"),
+    })
     private WebElement inputPassword;
 
-    @FindBy(id = "button-login")
+    @FindBy(className = "btn-login")
     private WebElement buttonLogin;
 
-    public LoginPage(RemoteWebDriver driver) {
-        this.driver = driver;
+    @FindBy(className = "n-switch__button")
+    private WebElement buttonSwitchLanguage;
 
-        PageFactory.initElements(driver, this);
+    public LoginPage(RemoteWebDriver driver) {
+        super(driver);
+    }
+
+    @SneakyThrows
+    public NavBarPage login(String username, String password) {
+        new WebDriverWait(driver, Duration.ofSeconds(30)).until(ExpectedConditions.elementToBeClickable(buttonSwitchLanguage));
+
+        buttonSwitchLanguage().click();
+
+        inputUsername().sendKeys(username);
+        inputPassword().sendKeys(password);
+        buttonLogin().click();
+
+        new WebDriverWait(driver, Duration.ofSeconds(30))
+            .until(ExpectedConditions.urlContains("/home"));
+
+        return new NavBarPage(driver);
     }
 }

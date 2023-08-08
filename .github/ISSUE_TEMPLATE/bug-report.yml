@@ -22,11 +22,12 @@ labels: [ "bug", "Waiting for reply" ]
 body:
   - type: markdown
     attributes:
-      value: |
+      value: >
         Please make sure what you are reporting is indeed a bug with reproducible steps, if you want to ask questions
-        or share ideas, please [subscribe to our mailing list](mailto:dev-subscribe@dolphinscheduler.apache.org) and sent
-        emails to [our mailing list](mailto:dev@dolphinscheduler.apache.org), you can also head to our
-        [Discussion](https://github.com/apache/dolphinscheduler/discussions) tab.
+        or share ideas, you can head to our
+        [Discussions](https://github.com/apache/dolphinscheduler/discussions) tab, you can also
+        [join our slack](https://s.apache.org/dolphinscheduler-slack)
+        and send your question to channel `#troubleshooting`
 
         For better global communication, Please write in English.
 
@@ -89,6 +90,19 @@ body:
         Any relevant logs to include? Put them here inside fenced
         ``` ``` blocks or inside a collapsable details tag if it's too long:
         <details><summary>x.log</summary> lots of stuff </details>
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: >
+        Which version of Apache DolphinScheduler are you running? We only accept bugs report from the LTS projects.
+      options:
+        - dev
+        - 3.1.x
+        - 3.2.0-prepare
+    validations:
+      required: true
 
   - type: checkboxes
     attributes:

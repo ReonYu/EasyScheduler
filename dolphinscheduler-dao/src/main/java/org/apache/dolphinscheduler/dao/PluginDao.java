@@ -19,28 +19,24 @@ package org.apache.dolphinscheduler.dao;
 
 import static java.util.Objects.requireNonNull;
 
-import org.apache.dolphinscheduler.dao.datasource.ConnectionFactory;
 import org.apache.dolphinscheduler.dao.entity.PluginDefine;
 import org.apache.dolphinscheduler.dao.mapper.PluginDefineMapper;
+import org.apache.dolphinscheduler.plugin.task.api.TaskPluginException;
 
-import org.apache.commons.collections.CollectionUtils;
+import java.util.Objects;
 
-import java.util.List;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
-public class PluginDao extends AbstractBaseDao {
+public class PluginDao {
+
     @Autowired
     private PluginDefineMapper pluginDefineMapper;
-
-    @Override
-    protected void init() {
-        pluginDefineMapper = ConnectionFactory.getInstance().getMapper(PluginDefineMapper.class);
-    }
 
     /**
      * check plugin define table exist
@@ -52,34 +48,39 @@ public class PluginDao extends AbstractBaseDao {
     }
 
     /**
-     * add pluginDefine
-     *
-     * @param pluginDefine plugin define entiy
-     * @return plugin define id
-     */
-    public int addPluginDefine(PluginDefine pluginDefine) {
-        return pluginDefineMapper.insert(pluginDefine);
-    }
-
-    /**
      * add or update plugin define
      *
      * @param pluginDefine new pluginDefine
+     * @return plugin id
      */
-    public int addOrUpdatePluginDefine(PluginDefine pluginDefine) {
-        requireNonNull(pluginDefine, "pluginDefine is null");
+    public int addOrUpdatePluginDefine(@NonNull PluginDefine pluginDefine) {
         requireNonNull(pluginDefine.getPluginName(), "pluginName is null");
         requireNonNull(pluginDefine.getPluginType(), "pluginType is null");
 
-        List<PluginDefine> pluginDefineList = pluginDefineMapper.queryByNameAndType(pluginDefine.getPluginName(), pluginDefine.getPluginType());
-        if (CollectionUtils.isEmpty(pluginDefineList)) {
-            if (pluginDefineMapper.insert(pluginDefine) == 1 && pluginDefine.getId() > 0) {
-                return pluginDefine.getId();
+        PluginDefine currPluginDefine =
+                pluginDefineMapper.queryByNameAndType(pluginDefine.getPluginName(), pluginDefine.getPluginType());
+        if (currPluginDefine == null) {
+            try {
+                if (pluginDefineMapper.insert(pluginDefine) == 1 && pluginDefine.getId() != null) {
+                    return pluginDefine.getId();
+                }
+                throw new TaskPluginException(
+                        String.format("Failed to insert plugin definition, pluginName: %s, pluginType: %s",
+                                pluginDefine.getPluginName(), pluginDefine.getPluginType()));
+            } catch (TaskPluginException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                log.error("Insert plugin definition error, there may already exist a plugin", ex);
+                currPluginDefine = pluginDefineMapper.queryByNameAndType(pluginDefine.getPluginName(),
+                        pluginDefine.getPluginType());
+                if (currPluginDefine == null) {
+                    throw new TaskPluginException(
+                            String.format("Failed to insert plugin definition, pluginName: %s, pluginType: %s",
+                                    pluginDefine.getPluginName(), pluginDefine.getPluginType()));
+                }
             }
-            throw new IllegalStateException("Failed to insert plugin definition");
         }
-        PluginDefine currPluginDefine = pluginDefineList.get(0);
-        if (!currPluginDefine.getPluginParams().equals(pluginDefine.getPluginParams())) {
+        if (!Objects.equals(currPluginDefine.getPluginParams(), pluginDefine.getPluginParams())) {
             currPluginDefine.setUpdateTime(pluginDefine.getUpdateTime());
             currPluginDefine.setPluginParams(pluginDefine.getPluginParams());
             pluginDefineMapper.updateById(currPluginDefine);
@@ -95,13 +96,5 @@ public class PluginDao extends AbstractBaseDao {
      */
     public PluginDefine getPluginDefineById(int pluginDefineId) {
         return pluginDefineMapper.selectById(pluginDefineId);
-    }
-
-    public PluginDefineMapper getPluginDefineMapper() {
-        return pluginDefineMapper;
-    }
-
-    public void setPluginDefineMapper(PluginDefineMapper pluginDefineMapper) {
-        this.pluginDefineMapper = pluginDefineMapper;
     }
 }

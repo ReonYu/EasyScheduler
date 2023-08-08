@@ -26,10 +26,10 @@ import org.apache.dolphinscheduler.api.enums.Status;
 import org.apache.dolphinscheduler.api.utils.Result;
 import org.apache.dolphinscheduler.common.utils.JSONUtils;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -41,6 +41,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Preconditions;
 
 public class EnvironmentControllerTest extends AbstractControllerTest {
+
     private static final Logger logger = LoggerFactory.getLogger(EnvironmentControllerTest.class);
 
     private String environmentCode;
@@ -51,13 +52,13 @@ public class EnvironmentControllerTest extends AbstractControllerTest {
 
     public static final String desc = "this is environment description";
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         testCreateEnvironment();
     }
 
     @Override
-    @After
+    @AfterEach
     public void after() throws Exception {
         testDeleteEnvironment();
     }
@@ -65,44 +66,46 @@ public class EnvironmentControllerTest extends AbstractControllerTest {
     public void testCreateEnvironment() throws Exception {
 
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("name",environmentName);
-        paramsMap.add("config",config);
-        paramsMap.add("description",desc);
+        paramsMap.add("name", environmentName);
+        paramsMap.add("config", config);
+        paramsMap.add("description", desc);
 
         MvcResult mvcResult = mockMvc.perform(post("/environment/create")
                 .header(SESSION_ID, sessionId)
                 .params(paramsMap))
                 .andExpect(status().isCreated())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
-        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), new TypeReference<Result<String>>() {});
+        Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(),
+                new TypeReference<Result<String>>() {
+                });
         logger.info(result.toString());
-        Assert.assertTrue(result != null && result.isSuccess());
-        Assert.assertNotNull(result.getData());
+        Assertions.assertTrue(result != null && result.isSuccess());
+        Assertions.assertNotNull(result.getData());
         logger.info("create environment return result:{}", mvcResult.getResponse().getContentAsString());
 
-        environmentCode = (String)result.getData();
+        environmentCode = (String) result.getData();
     }
 
     @Test
     public void testUpdateEnvironment() throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
         paramsMap.add("code", environmentCode);
-        paramsMap.add("name","environment_test_update");
-        paramsMap.add("config","this is config content");
-        paramsMap.add("desc","the test environment update");
+        paramsMap.add("name", "environment_test_update");
+        paramsMap.add("config", "this is config content");
+        paramsMap.add("desc", "the test environment update");
 
         MvcResult mvcResult = mockMvc.perform(post("/environment/update")
                 .header(SESSION_ID, sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
         logger.info(result.toString());
-        Assert.assertTrue(result != null && result.isSuccess());
+        Assertions.assertTrue(result != null && result.isSuccess());
         logger.info("update environment return result:{}", mvcResult.getResponse().getContentAsString());
 
     }
@@ -116,34 +119,35 @@ public class EnvironmentControllerTest extends AbstractControllerTest {
                 .header(SESSION_ID, sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
         logger.info(result.toString());
-        Assert.assertTrue(result != null && result.isSuccess());
+        Assertions.assertTrue(result != null && result.isSuccess());
         logger.info(mvcResult.getResponse().getContentAsString());
-        logger.info("query environment by id :{}, return result:{}", environmentCode, mvcResult.getResponse().getContentAsString());
+        logger.info("query environment by id :{}, return result:{}", environmentCode,
+                mvcResult.getResponse().getContentAsString());
 
     }
 
     @Test
     public void testQueryEnvironmentListPaging() throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("searchVal","test");
-        paramsMap.add("pageSize","2");
-        paramsMap.add("pageNo","2");
+        paramsMap.add("searchVal", "test");
+        paramsMap.add("pageSize", "2");
+        paramsMap.add("pageNo", "2");
 
         MvcResult mvcResult = mockMvc.perform(get("/environment/list-paging")
                 .header(SESSION_ID, sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
         logger.info(result.toString());
-        Assert.assertTrue(result != null && result.isSuccess());
+        Assertions.assertTrue(result != null && result.isSuccess());
         logger.info("query list-paging environment return result:{}", mvcResult.getResponse().getContentAsString());
     }
 
@@ -155,12 +159,12 @@ public class EnvironmentControllerTest extends AbstractControllerTest {
                 .header(SESSION_ID, sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
         logger.info(result.toString());
-        Assert.assertTrue(result != null && result.isSuccess());
+        Assertions.assertTrue(result != null && result.isSuccess());
         logger.info("query all environment return result:{}", mvcResult.getResponse().getContentAsString());
 
     }
@@ -168,18 +172,18 @@ public class EnvironmentControllerTest extends AbstractControllerTest {
     @Test
     public void testVerifyEnvironment() throws Exception {
         MultiValueMap<String, String> paramsMap = new LinkedMultiValueMap<>();
-        paramsMap.add("environmentName",environmentName);
+        paramsMap.add("environmentName", environmentName);
 
         MvcResult mvcResult = mockMvc.perform(post("/environment/verify-environment")
                 .header(SESSION_ID, sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
         logger.info(result.toString());
-        Assert.assertTrue(result.isStatus(Status.ENVIRONMENT_NAME_EXISTS));
+        Assertions.assertTrue(result.isStatus(Status.ENVIRONMENT_NAME_EXISTS));
         logger.info("verify environment return result:{}", mvcResult.getResponse().getContentAsString());
 
     }
@@ -194,12 +198,12 @@ public class EnvironmentControllerTest extends AbstractControllerTest {
                 .header(SESSION_ID, sessionId)
                 .params(paramsMap))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         Result result = JSONUtils.parseObject(mvcResult.getResponse().getContentAsString(), Result.class);
         logger.info(result.toString());
-        Assert.assertTrue(result != null && result.isSuccess());
+        Assertions.assertTrue(result != null && result.isSuccess());
         logger.info("delete environment return result:{}", mvcResult.getResponse().getContentAsString());
     }
 }

@@ -14,16 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.dolphinscheduler.common.enums;
 
 /**
  * data base types
  */
 public enum ResUploadType {
-  /**
-   * 0 hdfs
-   * 1 s3
-   * 2 none
-   */
-  HDFS,S3,NONE
+    LOCAL, HDFS, S3, OSS, GCS, ABS, NONE
 }

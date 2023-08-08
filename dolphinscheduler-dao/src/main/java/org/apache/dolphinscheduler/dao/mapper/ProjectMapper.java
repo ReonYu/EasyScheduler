@@ -22,6 +22,7 @@ import org.apache.dolphinscheduler.dao.entity.ProjectUser;
 
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
@@ -31,12 +32,20 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
  * project mapper interface
  */
 public interface ProjectMapper extends BaseMapper<Project> {
+
     /**
      * query project detail by code
      * @param projectCode projectCode
      * @return project
      */
     Project queryByCode(@Param("projectCode") long projectCode);
+
+    /**
+     * query project detail by code list
+     * @param codes codes
+     * @return project list
+     */
+    List<Project> queryByCodes(@Param("codes") Collection<Long> codes);
 
     /**
      * TODO: delete
@@ -63,12 +72,12 @@ public interface ProjectMapper extends BaseMapper<Project> {
     /**
      * project page
      * @param page page
-     * @param userId userId
+     * @param projectsIds projectsIds
      * @param searchName searchName
      * @return project Ipage
      */
     IPage<Project> queryProjectListPaging(IPage<Project> page,
-                                          @Param("userId") int userId,
+                                          @Param("projectsIds") List<Integer> projectsIds,
                                           @Param("searchName") String searchName);
 
     /**
@@ -115,7 +124,37 @@ public interface ProjectMapper extends BaseMapper<Project> {
 
     /**
      * query all project
+     * @param userId
      * @return projectList
      */
-    List<Project> queryAllProject();
+    List<Project> queryAllProject(@Param("userId") int userId);
+
+    /**
+     * list authorized Projects
+     * @param userId
+     * @param projectsIds
+     * @param <T>
+     * @return
+     */
+    List<Project> listAuthorizedProjects(@Param("userId") int userId, @Param("projectsIds") List<Integer> projectsIds);
+
+    /**
+     * query all project for dependent node
+     * @return projectList
+     */
+    List<Project> queryAllProjectForDependent();
+
+    /**
+     * query the project by task instance id
+     * @param taskInstanceId
+     * @return project
+     */
+    Project queryProjectByTaskInstanceId(@Param("taskInstanceId") int taskInstanceId);
+
+    /**
+     * query all workflow count
+     * @param projectsCodes projectsCodes
+     * @return workflow count
+     */
+    int queryAllWorkflowCounts(@Param("projectsCodes") List<Long> projectsCodes);
 }

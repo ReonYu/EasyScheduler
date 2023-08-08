@@ -24,6 +24,8 @@ import static org.testcontainers.containers.VncRecordingContainer.VncRecordingFo
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,7 +34,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,18 +41,15 @@ import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.testcontainers.Testcontainers;
 import org.testcontainers.containers.BrowserWebDriverContainer;
-import org.testcontainers.containers.ContainerState;
 import org.testcontainers.containers.DockerComposeContainer;
-import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.shaded.org.apache.commons.lang.SystemUtils;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
+import org.testcontainers.utility.DockerImageName;
 
 import com.google.common.base.Strings;
 import com.google.common.net.HostAndPort;
@@ -59,51 +57,105 @@ import com.google.common.net.HostAndPort;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-final class DolphinSchedulerExtension
-        implements BeforeAllCallback, AfterAllCallback,
-        BeforeEachCallback {
+final class DolphinSchedulerExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback {
     private final boolean LOCAL_MODE = Objects.equals(System.getProperty("local"), "true");
+
+    private final boolean M1_CHIP_FLAG = Objects.equals(System.getProperty("m1_chip"), "true");
+
+    private final int LOCAL_PORT = 5173;
+
+    private final int DOCKER_PORT = 12345;
 
     private RemoteWebDriver driver;
     private DockerComposeContainer<?> compose;
     private BrowserWebDriverContainer<?> browser;
+    private HostAndPort address;
+    private String rootPath;
+
+    private Path record;
+
+    private final String serviceName = "dolphinscheduler_1";
 
     @Override
     @SuppressWarnings("UnstableApiUsage")
     public void beforeAll(ExtensionContext context) throws IOException {
-        Awaitility.setDefaultTimeout(Duration.ofSeconds(5));
-        Awaitility.setDefaultPollInterval(Duration.ofSeconds(1));
+        Awaitility.setDefaultTimeout(Duration.ofSeconds(60));
+        Awaitility.setDefaultPollInterval(Duration.ofSeconds(2));
 
-        Network network = null;
-        HostAndPort address = null;
-        String rootPath = "/";
-        if (!LOCAL_MODE) {
-            compose = createDockerCompose(context);
-            compose.start();
+        setRecordPath();
 
-            final ContainerState dsContainer = compose.getContainerByServiceName("dolphinscheduler_1")
-                                                      .orElseThrow(() -> new RuntimeException("Failed to find a container named 'dolphinscheduler'"));
-            final String networkId = dsContainer.getContainerInfo().getNetworkSettings().getNetworks().keySet().iterator().next();
-            network = new Network() {
-                @Override
-                public String getId() {
-                    return networkId;
-                }
-
-                @Override
-                public void close() {
-                }
-
-                @Override
-                public Statement apply(Statement base, Description description) {
-                    return null;
-                }
-            };
-            address = HostAndPort.fromParts("dolphinscheduler", 12345);
-            rootPath = "/dolphinscheduler";
+        if (LOCAL_MODE) {
+            runInLocal();
+        } else {
+            runInDockerContainer(context);
         }
 
-        final Path record;
+        setBrowserContainerByOsName();
+
+        if (compose != null) {
+            Testcontainers.exposeHostPorts(compose.getServicePort(serviceName, DOCKER_PORT));
+            browser.withAccessToHost(true);
+        }
+        browser.start();
+
+        driver = new RemoteWebDriver(browser.getSeleniumAddress(), new ChromeOptions());
+
+        driver.manage().timeouts()
+              .implicitlyWait(Duration.ofSeconds(10))
+              .pageLoadTimeout(Duration.ofSeconds(10));
+        driver.manage().window()
+              .maximize();
+
+        driver.get(new URL("http", address.getHost(), address.getPort(), rootPath).toString());
+
+        browser.beforeTest(new TestDescription(context));
+
+        final Class<?> clazz = context.getRequiredTestClass();
+        Stream.of(clazz.getDeclaredFields())
+              .filter(it -> Modifier.isStatic(it.getModifiers()))
+              .filter(f -> WebDriver.class.isAssignableFrom(f.getType()))
+              .forEach(it -> setDriver(clazz, it));
+    }
+
+    private void runInLocal() {
+        Testcontainers.exposeHostPorts(LOCAL_PORT);
+        address = HostAndPort.fromParts("host.testcontainers.internal", LOCAL_PORT);
+        rootPath = "/";
+    }
+
+    private void runInDockerContainer(ExtensionContext context) {
+        compose = createDockerCompose(context);
+        compose.start();
+
+        address = HostAndPort.fromParts("host.testcontainers.internal", compose.getServicePort(serviceName, DOCKER_PORT));
+        rootPath = "/dolphinscheduler/ui/";
+    }
+
+    private void setBrowserContainerByOsName() {
+        DockerImageName imageName;
+
+        if (LOCAL_MODE && M1_CHIP_FLAG) {
+            imageName = DockerImageName.parse("seleniarm/standalone-chromium:4.1.2-20220227")
+                    .asCompatibleSubstituteFor("selenium/standalone-chrome");
+
+            browser = new BrowserWebDriverContainer<>(imageName)
+                    .withCapabilities(new ChromeOptions())
+                    .withCreateContainerCmdModifier(cmd -> cmd.withUser("root"))
+                    .withFileSystemBind(Constants.HOST_CHROME_DOWNLOAD_PATH.toFile().getAbsolutePath(),
+                            Constants.SELENIUM_CONTAINER_CHROME_DOWNLOAD_PATH)
+                    .withStartupTimeout(Duration.ofSeconds(300));
+        } else {
+            browser = new BrowserWebDriverContainer<>()
+                    .withCapabilities(new ChromeOptions())
+                    .withCreateContainerCmdModifier(cmd -> cmd.withUser("root"))
+                    .withFileSystemBind(Constants.HOST_CHROME_DOWNLOAD_PATH.toFile().getAbsolutePath(),
+                            Constants.SELENIUM_CONTAINER_CHROME_DOWNLOAD_PATH)
+                    .withRecordingMode(RECORD_ALL, record.toFile(), MP4)
+                    .withStartupTimeout(Duration.ofSeconds(300));
+        }
+    }
+
+    private void setRecordPath() throws IOException {
         if (!Strings.isNullOrEmpty(System.getenv("RECORDING_PATH"))) {
             record = Paths.get(System.getenv("RECORDING_PATH"));
             if (!record.toFile().exists()) {
@@ -114,34 +166,6 @@ final class DolphinSchedulerExtension
         } else {
             record = Files.createTempDirectory("record-");
         }
-        browser = new BrowserWebDriverContainer<>()
-                .withCapabilities(new ChromeOptions())
-                .withRecordingMode(RECORD_ALL, record.toFile(), MP4);
-        if (network != null) {
-            browser.withNetwork(network);
-        }
-        browser.start();
-
-        driver = browser.getWebDriver();
-
-        driver.manage().timeouts()
-              .implicitlyWait(5, TimeUnit.SECONDS)
-              .pageLoadTimeout(5, TimeUnit.SECONDS);
-        if (address == null) {
-            try {
-                address = HostAndPort.fromParts(browser.getTestHostIpAddress(), 8888);
-            } catch (UnsupportedOperationException ignored) {
-                if (SystemUtils.IS_OS_MAC || SystemUtils.IS_OS_MAC_OSX) {
-                    address = HostAndPort.fromParts("host.docker.internal", 8888);
-                }
-            }
-        }
-        if (address == null) {
-            throw new UnsupportedOperationException("Unsupported operation system");
-        }
-        driver.get(new URL("http", address.getHost(), address.getPort(), rootPath).toString());
-
-        browser.beforeTest(new TestDescription(context));
     }
 
     @Override
@@ -158,14 +182,16 @@ final class DolphinSchedulerExtension
         final Object instance = context.getRequiredTestInstance();
         Stream.of(instance.getClass().getDeclaredFields())
               .filter(f -> WebDriver.class.isAssignableFrom(f.getType()))
-              .forEach(it -> {
-                  try {
-                      it.setAccessible(true);
-                      it.set(instance, driver);
-                  } catch (IllegalAccessException e) {
-                      LOGGER.error("Failed to inject web driver to field: {}", it.getName(), e);
-                  }
-              });
+              .forEach(it -> setDriver(instance, it));
+    }
+
+    private void setDriver(Object object, Field field) {
+        try {
+            field.setAccessible(true);
+            field.set(object, driver);
+        } catch (IllegalAccessException e) {
+            LOGGER.error("Failed to inject web driver to field: {}", field.getName(), e);
+        }
     }
 
     private DockerComposeContainer<?> createDockerCompose(ExtensionContext context) {
@@ -178,9 +204,12 @@ final class DolphinSchedulerExtension
                                        .map(File::new)
                                        .collect(Collectors.toList());
         compose = new DockerComposeContainer<>(files)
-                .withPull(true)
-                .withTailChildContainers(true)
-                .waitingFor("dolphinscheduler_1", Wait.forHealthcheck());
+            .withPull(true)
+            .withTailChildContainers(true)
+            .withLocalCompose(true)
+            .withExposedService(serviceName, DOCKER_PORT, Wait.forListeningPort().withStartupTimeout(Duration.ofSeconds(300)))
+            .withLogConsumer(serviceName, outputFrame -> LOGGER.info(outputFrame.getUtf8String()))
+            .waitingFor(serviceName, Wait.forHealthcheck().withStartupTimeout(Duration.ofSeconds(300)));
 
         return compose;
     }

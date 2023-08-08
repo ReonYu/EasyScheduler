@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.dolphinscheduler.common.enums;
 
 import com.baomidou.mybatisplus.annotation.EnumValue;
@@ -22,6 +23,7 @@ import com.baomidou.mybatisplus.annotation.EnumValue;
  *  define process and task priority
  */
 public enum Priority {
+
     /**
      * 0 highest priority
      * 1 higher priority

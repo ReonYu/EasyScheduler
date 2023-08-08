@@ -24,10 +24,10 @@ import org.apache.dolphinscheduler.alert.api.AlertResult;
 
 import java.util.Map;
 
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public final class EmailAlertChannel implements AlertChannel {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(EmailAlertChannel.class);
 
     @Override
     public AlertResult process(AlertInfo info) {

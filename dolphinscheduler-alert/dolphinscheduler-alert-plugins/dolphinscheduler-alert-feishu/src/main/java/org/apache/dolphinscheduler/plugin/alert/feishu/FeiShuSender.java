@@ -19,9 +19,10 @@ package org.apache.dolphinscheduler.plugin.alert.feishu;
 
 import org.apache.dolphinscheduler.alert.api.AlertData;
 import org.apache.dolphinscheduler.alert.api.AlertResult;
-import org.apache.dolphinscheduler.spi.utils.JSONUtils;
+import org.apache.dolphinscheduler.common.utils.JSONUtils;
 
 import org.apache.commons.codec.binary.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -35,12 +36,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@Slf4j
 public final class FeiShuSender {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(FeiShuSender.class);
+
     private final String url;
     private final Boolean enableProxy;
 
@@ -79,7 +81,7 @@ public final class FeiShuSender {
         AlertResult alertResult = new AlertResult();
         alertResult.setStatus("false");
 
-        if (org.apache.dolphinscheduler.spi.utils.StringUtils.isBlank(result)) {
+        if (org.apache.commons.lang3.StringUtils.isBlank(result)) {
             alertResult.setMessage("send fei shu msg error");
             log.info("send fei shu msg error,fei shu server resp is null");
             return alertResult;
@@ -97,7 +99,8 @@ public final class FeiShuSender {
             return alertResult;
         }
         alertResult.setMessage(String.format("alert send fei shu msg error : %s", sendMsgResponse.getStatusMessage()));
-        log.info("alert send fei shu msg error : {} ,Extra : {} ", sendMsgResponse.getStatusMessage(), sendMsgResponse.getExtra());
+        log.info("alert send fei shu msg error : {} ,Extra : {} ", sendMsgResponse.getStatusMessage(),
+                sendMsgResponse.getExtra());
         return alertResult;
     }
 
@@ -105,7 +108,7 @@ public final class FeiShuSender {
         if (alertData.getContent() != null) {
 
             List<Map> list = JSONUtils.toList(alertData.getContent(), Map.class);
-            if (list.isEmpty()) {
+            if (CollectionUtils.isEmpty(list)) {
                 return alertData.getTitle() + alertData.getContent();
             }
 
@@ -163,7 +166,8 @@ public final class FeiShuSender {
             } finally {
                 response.close();
             }
-            log.info("Fei Shu send title :{} ,content :{}, resp: {}", alertData.getTitle(), alertData.getContent(), resp);
+            log.info("Fei Shu send title :{} ,content :{}, resp: {}", alertData.getTitle(), alertData.getContent(),
+                    resp);
             return resp;
         } finally {
             httpClient.close();
@@ -171,6 +175,7 @@ public final class FeiShuSender {
     }
 
     static final class FeiShuSendMsgResponse {
+
         @JsonProperty("Extra")
         private String extra;
         @JsonProperty("StatusCode")
@@ -228,7 +233,8 @@ public final class FeiShuSender {
             }
             final Object this$statusMessage = this.getStatusMessage();
             final Object other$statusMessage = other.getStatusMessage();
-            if (this$statusMessage == null ? other$statusMessage != null : !this$statusMessage.equals(other$statusMessage)) {
+            if (this$statusMessage == null ? other$statusMessage != null
+                    : !this$statusMessage.equals(other$statusMessage)) {
                 return false;
             }
             return true;
@@ -247,7 +253,8 @@ public final class FeiShuSender {
         }
 
         public String toString() {
-            return "FeiShuSender.FeiShuSendMsgResponse(extra=" + this.getExtra() + ", statusCode=" + this.getStatusCode() + ", statusMessage=" + this.getStatusMessage() + ")";
+            return "FeiShuSender.FeiShuSendMsgResponse(extra=" + this.getExtra() + ", statusCode="
+                    + this.getStatusCode() + ", statusMessage=" + this.getStatusMessage() + ")";
         }
     }
 }

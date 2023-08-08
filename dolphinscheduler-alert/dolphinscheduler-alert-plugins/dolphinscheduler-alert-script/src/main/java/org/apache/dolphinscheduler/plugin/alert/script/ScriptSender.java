@@ -18,13 +18,18 @@
 package org.apache.dolphinscheduler.plugin.alert.script;
 
 import org.apache.dolphinscheduler.alert.api.AlertResult;
+import org.apache.dolphinscheduler.common.utils.OSUtils;
 
+import org.apache.commons.lang3.StringUtils;
+
+import java.io.File;
 import java.util.Map;
 
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public final class ScriptSender {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(ScriptSender.class);
+
     private static final String ALERT_TITLE_OPTION = " -t ";
     private static final String ALERT_CONTENT_OPTION = " -c ";
     private static final String ALERT_USER_PARAMS_OPTION = " -p ";
@@ -33,9 +38,15 @@ public final class ScriptSender {
     private final String userParams;
 
     ScriptSender(Map<String, String> config) {
-        scriptPath = config.get(ScriptParamsConstants.NAME_SCRIPT_PATH);
-        scriptType = config.get(ScriptParamsConstants.NAME_SCRIPT_TYPE);
-        userParams = config.get(ScriptParamsConstants.NAME_SCRIPT_USER_PARAMS);
+        scriptPath = StringUtils.isNotBlank(config.get(ScriptParamsConstants.NAME_SCRIPT_PATH))
+                ? config.get(ScriptParamsConstants.NAME_SCRIPT_PATH)
+                : "";
+        scriptType = StringUtils.isNotBlank(config.get(ScriptParamsConstants.NAME_SCRIPT_TYPE))
+                ? config.get(ScriptParamsConstants.NAME_SCRIPT_TYPE)
+                : "";
+        userParams = StringUtils.isNotBlank(config.get(ScriptParamsConstants.NAME_SCRIPT_USER_PARAMS))
+                ? config.get(ScriptParamsConstants.NAME_SCRIPT_USER_PARAMS)
+                : "";
     }
 
     AlertResult sendScriptAlert(String title, String content) {
@@ -43,6 +54,11 @@ public final class ScriptSender {
         if (ScriptType.SHELL.getDescp().equals(scriptType)) {
             return executeShellScript(title, content);
         }
+        // If it is another type of alarm script can be added here, such as python
+
+        alertResult.setStatus("false");
+        log.error("script type error: {}", scriptType);
+        alertResult.setMessage("script type error : " + scriptType);
         return alertResult;
     }
 
@@ -53,7 +69,40 @@ public final class ScriptSender {
             alertResult.setMessage("shell script not support windows os");
             return alertResult;
         }
-        String[] cmd = {"/bin/sh", "-c", scriptPath + ALERT_TITLE_OPTION + "'" + title + "'" + ALERT_CONTENT_OPTION + "'" + content + "'" + ALERT_USER_PARAMS_OPTION + "'" + userParams + "'"};
+        // validate script path in case of injections
+        File shellScriptFile = new File(scriptPath);
+        // validate existence
+        if (!shellScriptFile.exists()) {
+            log.error("shell script not exist : {}", scriptPath);
+            alertResult.setMessage("shell script not exist : " + scriptPath);
+            return alertResult;
+        }
+        // validate is file
+        if (!shellScriptFile.isFile()) {
+            log.error("shell script is not a file : {}", scriptPath);
+            alertResult.setMessage("shell script is not a file : " + scriptPath);
+            return alertResult;
+        }
+
+        // avoid command injection (RCE vulnerability)
+        if (userParams.contains("'")) {
+            log.error("shell script illegal user params : {}", userParams);
+            alertResult.setMessage("shell script illegal user params : " + userParams);
+            return alertResult;
+        }
+        if (title.contains("'")) {
+            log.error("shell script illegal title : {}", title);
+            alertResult.setMessage("shell script illegal title : " + title);
+            return alertResult;
+        }
+        if (content.contains("'")) {
+            log.error("shell script illegal content : {}", content);
+            alertResult.setMessage("shell script illegal content : " + content);
+            return alertResult;
+        }
+
+        String[] cmd = {"/bin/sh", "-c", scriptPath + ALERT_TITLE_OPTION + "'" + title + "'" + ALERT_CONTENT_OPTION
+                + "'" + content + "'" + ALERT_USER_PARAMS_OPTION + "'" + userParams + "'"};
         int exitCode = ProcessUtils.executeScript(cmd);
 
         if (exitCode == 0) {

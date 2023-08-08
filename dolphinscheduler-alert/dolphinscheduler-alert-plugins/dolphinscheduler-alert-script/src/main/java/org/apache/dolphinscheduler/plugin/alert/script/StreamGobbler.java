@@ -22,10 +22,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public final class StreamGobbler extends Thread {
-    private static final Logger log = org.slf4j.LoggerFactory.getLogger(StreamGobbler.class);
 
     private final InputStream inputStream;
 

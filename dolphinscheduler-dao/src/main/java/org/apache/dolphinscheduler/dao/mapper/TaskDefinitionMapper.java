@@ -17,13 +17,16 @@
 
 package org.apache.dolphinscheduler.dao.mapper;
 
+import org.apache.dolphinscheduler.common.enums.TaskExecuteType;
 import org.apache.dolphinscheduler.dao.entity.DefinitionGroupByUser;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinition;
 import org.apache.dolphinscheduler.dao.entity.TaskDefinitionLog;
+import org.apache.dolphinscheduler.dao.entity.TaskMainInfo;
 
 import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -39,10 +42,12 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
      * query task definition by name
      *
      * @param projectCode projectCode
+     * @param processCode processCode
      * @param name name
      * @return task definition
      */
     TaskDefinition queryByName(@Param("projectCode") long projectCode,
+                               @Param("processCode") long processCode,
                                @Param("name") String name);
 
     /**
@@ -70,7 +75,7 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
     List<DefinitionGroupByUser> countDefinitionGroupByUser(@Param("projectCodes") Long[] projectCodes);
 
     /**
-     * list all resource ids
+     * list all resource ids and task_params containing resourceList
      *
      * @return task ids list
      */
@@ -102,20 +107,55 @@ public interface TaskDefinitionMapper extends BaseMapper<TaskDefinition> {
     int batchInsert(@Param("taskDefinitions") List<TaskDefinitionLog> taskDefinitions);
 
     /**
-     * task definition page
+     * task main info page
      *
      * @param page page
-     * @param taskType taskType
-     * @param searchVal searchVal
-     * @param userId userId
      * @param projectCode projectCode
-     * @param isAdmin isAdmin
+     * @param searchTaskName searchTaskName
+     * @param taskType taskType
+     * @param taskExecuteType taskExecuteType
+     * @return task main info IPage
+     */
+    IPage<TaskMainInfo> queryDefineListPaging(IPage<TaskMainInfo> page,
+                                              @Param("projectCode") long projectCode,
+                                              @Param("searchTaskName") String searchTaskName,
+                                              @Param("taskType") String taskType,
+                                              @Param("taskExecuteType") TaskExecuteType taskExecuteType);
+
+    /**
+     * task main info
+     * @param projectCode project code
+     * @param codeList code list
+     * @return task main info
+     */
+    List<TaskMainInfo> queryDefineListByCodeList(@Param("projectCode") long projectCode,
+                                                 @Param("codeList") List<Long> codeList);
+
+    /**
+     * query task definition by code list
+     *
+     * @param codes taskDefinitionCode list
+     * @return task definition list
+     */
+    List<TaskDefinition> queryByCodeList(@Param("codes") Collection<Long> codes);
+
+    /**
+     * Filter task definition
+     *
+     * @param page page
+     * @param taskDefinition process definition object
      * @return task definition IPage
      */
-    IPage<TaskDefinition> queryDefineListPaging(IPage<TaskDefinition> page,
-                                                @Param("projectCode") long projectCode,
-                                                @Param("taskType") String taskType,
-                                                @Param("searchVal") String searchVal,
-                                                @Param("userId") int userId,
-                                                @Param("isAdmin") boolean isAdmin);
+    IPage<TaskDefinition> filterTaskDefinition(IPage<TaskDefinition> page,
+                                               @Param("task") TaskDefinition taskDefinition);
+
+    /**
+     * batch delete task by task code
+     *
+     * @param taskCodeList task code list
+     * @return deleted row count
+     */
+    int deleteByBatchCodes(@Param("taskCodeList") List<Long> taskCodeList);
+
+    void deleteByWorkflowDefinitionCodeAndVersion(long workflowDefinitionCode, int workflowDefinitionVersion);
 }

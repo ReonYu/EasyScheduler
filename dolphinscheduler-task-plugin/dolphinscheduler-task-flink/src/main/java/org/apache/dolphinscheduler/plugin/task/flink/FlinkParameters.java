@@ -17,8 +17,8 @@
 
 package org.apache.dolphinscheduler.plugin.task.flink;
 
-import org.apache.dolphinscheduler.spi.task.AbstractParameters;
-import org.apache.dolphinscheduler.spi.task.ResourceInfo;
+import org.apache.dolphinscheduler.plugin.task.api.model.ResourceInfo;
+import org.apache.dolphinscheduler.plugin.task.api.parameters.AbstractParameters;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,9 +39,9 @@ public class FlinkParameters extends AbstractParameters {
     private String mainClass;
 
     /**
-     * deploy mode  yarn-cluster yarn-local
+     * deploy mode  yarn-cluster yarn-local yarn-application
      */
-    private String deployMode;
+    private FlinkDeployMode deployMode;
 
     /**
      * arguments
@@ -86,7 +86,7 @@ public class FlinkParameters extends AbstractParameters {
     /**
      * The YARN queue to submit to
      */
-    private String queue;
+    private String yarnQueue;
 
     /**
      * other arguments
@@ -100,9 +100,19 @@ public class FlinkParameters extends AbstractParameters {
 
     /**
      * program type
-     * 0 JAVA,1 SCALA,2 PYTHON
+     * 0 JAVA,1 SCALA,2 PYTHON,3 SQL
      */
     private ProgramType programType;
+
+    /**
+     * flink sql initialization file
+     */
+    private String initScript;
+
+    /**
+     * flink sql script file
+     */
+    private String rawScript;
 
     public ResourceInfo getMainJar() {
         return mainJar;
@@ -120,11 +130,11 @@ public class FlinkParameters extends AbstractParameters {
         this.mainClass = mainClass;
     }
 
-    public String getDeployMode() {
+    public FlinkDeployMode getDeployMode() {
         return deployMode;
     }
 
-    public void setDeployMode(String deployMode) {
+    public void setDeployMode(FlinkDeployMode deployMode) {
         this.deployMode = deployMode;
     }
 
@@ -184,12 +194,12 @@ public class FlinkParameters extends AbstractParameters {
         this.taskManagerMemory = taskManagerMemory;
     }
 
-    public String getQueue() {
-        return queue;
+    public String getYarnQueue() {
+        return yarnQueue;
     }
 
-    public void setQueue(String queue) {
-        this.queue = queue;
+    public void setYarnQueue(String yarnQueue) {
+        this.yarnQueue = yarnQueue;
     }
 
     public List<ResourceInfo> getResourceList() {
@@ -224,9 +234,30 @@ public class FlinkParameters extends AbstractParameters {
         this.flinkVersion = flinkVersion;
     }
 
+    public String getInitScript() {
+        return initScript;
+    }
+
+    public void setInitScript(String initScript) {
+        this.initScript = initScript;
+    }
+
+    public String getRawScript() {
+        return rawScript;
+    }
+
+    public void setRawScript(String rawScript) {
+        this.rawScript = rawScript;
+    }
+
     @Override
     public boolean checkParameters() {
-        return mainJar != null && programType != null;
+        /**
+         * When saving a task, the parameter cannot be empty. There are two judgments:
+         * (1) When ProgramType is SQL, rawScript cannot be empty.
+         * (2) When ProgramType is Java/Scala/Python, mainJar cannot be empty.
+         */
+        return programType != null && (rawScript != null || mainJar != null);
     }
 
     @Override
@@ -236,5 +267,4 @@ public class FlinkParameters extends AbstractParameters {
         }
         return resourceList;
     }
-
 }

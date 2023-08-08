@@ -18,14 +18,14 @@
 package org.apache.dolphinscheduler.plugin.task.sqoop.generator;
 
 import org.apache.dolphinscheduler.plugin.task.sqoop.SqoopJobType;
+import org.apache.dolphinscheduler.plugin.task.sqoop.SqoopTaskExecutionContext;
 import org.apache.dolphinscheduler.plugin.task.sqoop.generator.sources.HdfsSourceGenerator;
 import org.apache.dolphinscheduler.plugin.task.sqoop.generator.sources.HiveSourceGenerator;
-import org.apache.dolphinscheduler.plugin.task.sqoop.generator.sources.MysqlSourceGenerator;
+import org.apache.dolphinscheduler.plugin.task.sqoop.generator.sources.MySQLSourceGenerator;
 import org.apache.dolphinscheduler.plugin.task.sqoop.generator.targets.HdfsTargetGenerator;
 import org.apache.dolphinscheduler.plugin.task.sqoop.generator.targets.HiveTargetGenerator;
-import org.apache.dolphinscheduler.plugin.task.sqoop.generator.targets.MysqlTargetGenerator;
+import org.apache.dolphinscheduler.plugin.task.sqoop.generator.targets.MySQLTargetGenerator;
 import org.apache.dolphinscheduler.plugin.task.sqoop.parameter.SqoopParameters;
-import org.apache.dolphinscheduler.spi.task.request.TaskRequest;
 
 /**
  * Sqoop Job Scripts Generator
@@ -62,9 +62,11 @@ public class SqoopJobGenerator {
      * get the final sqoop scripts
      *
      * @param sqoopParameters sqoop params
+     * @param sqoopTaskExecutionContext
      * @return sqoop scripts
      */
-    public String generateSqoopJob(SqoopParameters sqoopParameters, TaskRequest taskExecutionContext) {
+    public String generateSqoopJob(SqoopParameters sqoopParameters,
+                                   SqoopTaskExecutionContext sqoopTaskExecutionContext) {
 
         String sqoopScripts = "";
 
@@ -75,10 +77,10 @@ public class SqoopJobGenerator {
             }
 
             sqoopScripts = String.format("%s%s%s", commonGenerator.generate(sqoopParameters),
-                sourceGenerator.generate(sqoopParameters, taskExecutionContext),
-                targetGenerator.generate(sqoopParameters, taskExecutionContext));
+                    sourceGenerator.generate(sqoopParameters, sqoopTaskExecutionContext),
+                    targetGenerator.generate(sqoopParameters, sqoopTaskExecutionContext));
         } else if (SqoopJobType.CUSTOM.getDescp().equals(sqoopParameters.getJobType())) {
-            sqoopScripts = sqoopParameters.getCustomShell().replaceAll("\\r\\n", "\n");
+            sqoopScripts = sqoopParameters.getCustomShell().replaceAll("\\r\\n", System.lineSeparator());
         }
 
         return sqoopScripts;
@@ -93,7 +95,7 @@ public class SqoopJobGenerator {
     private ISourceGenerator createSourceGenerator(String sourceType) {
         switch (sourceType) {
             case MYSQL:
-                return new MysqlSourceGenerator();
+                return new MySQLSourceGenerator();
             case HIVE:
                 return new HiveSourceGenerator();
             case HDFS:
@@ -112,7 +114,7 @@ public class SqoopJobGenerator {
     private ITargetGenerator createTargetGenerator(String targetType) {
         switch (targetType) {
             case MYSQL:
-                return new MysqlTargetGenerator();
+                return new MySQLTargetGenerator();
             case HIVE:
                 return new HiveTargetGenerator();
             case HDFS:

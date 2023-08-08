@@ -18,6 +18,7 @@
 package org.apache.dolphinscheduler.api.service;
 
 import org.apache.dolphinscheduler.api.utils.Result;
+import org.apache.dolphinscheduler.dao.entity.Queue;
 import org.apache.dolphinscheduler.dao.entity.User;
 
 import java.util.Map;
@@ -33,7 +34,7 @@ public interface QueueService {
      * @param loginUser login user
      * @return queue list
      */
-    Map<String, Object> queryList(User loginUser);
+    Result queryList(User loginUser);
 
     /**
      * query queue list paging
@@ -54,7 +55,7 @@ public interface QueueService {
      * @param queueName queue name
      * @return create result
      */
-    Map<String, Object> createQueue(User loginUser, String queue, String queueName);
+    Result createQueue(User loginUser, String queue, String queueName);
 
     /**
      * update queue
@@ -65,7 +66,17 @@ public interface QueueService {
      * @param queueName queue name
      * @return update result code
      */
-    Map<String, Object> updateQueue(User loginUser, int id, String queue, String queueName);
+    Result updateQueue(User loginUser, int id, String queue, String queueName);
+
+    /**
+     * delete queue
+     *
+     * @param loginUser login user
+     * @param id queue id
+     * @return delete result code
+     * @throws Exception exception
+     */
+    Map<String, Object> deleteQueueById(User loginUser, int id) throws Exception;
 
     /**
      * verify queue and queueName
@@ -77,11 +88,14 @@ public interface QueueService {
     Result<Object> verifyQueue(String queue, String queueName);
 
     /**
-     * query queue by queueName
+     * Make sure queue with given name exists, and create the queue if not exists
      *
+     * ONLY for python gateway server, and should not use this in web ui function
+     *
+     * @param queue queue value
      * @param queueName queue name
-     * @return queue object for provide queue name
+     * @return Queue object
      */
-    Map<String, Object> queryQueueName(String queueName);
+    Queue createQueueIfNotExists(String queue, String queueName);
 
 }

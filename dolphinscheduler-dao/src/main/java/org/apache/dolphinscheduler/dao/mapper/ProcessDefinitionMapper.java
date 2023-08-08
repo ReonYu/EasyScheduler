@@ -18,8 +18,8 @@
 package org.apache.dolphinscheduler.dao.mapper;
 
 import org.apache.dolphinscheduler.dao.entity.DefinitionGroupByUser;
+import org.apache.dolphinscheduler.dao.entity.DependentSimplifyDefinition;
 import org.apache.dolphinscheduler.dao.entity.ProcessDefinition;
-import org.apache.dolphinscheduler.dao.entity.ProcessDefinitionLog;
 
 import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Param;
@@ -28,13 +28,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 /**
  * process definition mapper interface
  */
+@CacheConfig(cacheNames = "processDefinition", keyGenerator = "cacheKeyGenerator")
 public interface ProcessDefinitionMapper extends BaseMapper<ProcessDefinition> {
 
     /**
@@ -43,7 +47,23 @@ public interface ProcessDefinitionMapper extends BaseMapper<ProcessDefinition> {
      * @param code code
      * @return process definition
      */
+    @Cacheable(sync = true)
     ProcessDefinition queryByCode(@Param("code") long code);
+
+    /**
+     * update
+     */
+    @CacheEvict(key = "#p0.code")
+    int updateById(@Param("et") ProcessDefinition processDefinition);
+
+    /**
+     * delete process definition by code
+     *
+     * @param code code
+     * @return delete result
+     */
+    @CacheEvict
+    int deleteByCode(@Param("code") long code);
 
     /**
      * query process definition by code list
@@ -52,14 +72,6 @@ public interface ProcessDefinitionMapper extends BaseMapper<ProcessDefinition> {
      * @return process definition list
      */
     List<ProcessDefinition> queryByCodes(@Param("codes") Collection<Long> codes);
-
-    /**
-     * delete process definition by code
-     *
-     * @param code code
-     * @return delete result
-     */
-    int deleteByCode(@Param("code") long code);
 
     /**
      * verify process definition by name
@@ -96,14 +108,22 @@ public interface ProcessDefinitionMapper extends BaseMapper<ProcessDefinition> {
      * @param searchVal searchVal
      * @param userId userId
      * @param projectCode projectCode
-     * @param isAdmin isAdmin
      * @return process definition IPage
      */
     IPage<ProcessDefinition> queryDefineListPaging(IPage<ProcessDefinition> page,
                                                    @Param("searchVal") String searchVal,
                                                    @Param("userId") int userId,
-                                                   @Param("projectCode") long projectCode,
-                                                   @Param("isAdmin") boolean isAdmin);
+                                                   @Param("projectCode") long projectCode);
+
+    /**
+     * Filter process definitions
+     *
+     * @param page page
+     * @param processDefinition process definition object
+     * @return process definition IPage
+     */
+    IPage<ProcessDefinition> filterProcessDefinition(IPage<ProcessDefinition> page,
+                                                     @Param("pd") ProcessDefinition processDefinition);
 
     /**
      * query all process definition list
@@ -114,6 +134,15 @@ public interface ProcessDefinitionMapper extends BaseMapper<ProcessDefinition> {
     List<ProcessDefinition> queryAllDefinitionList(@Param("projectCode") long projectCode);
 
     /**
+     * query process definition list
+     *
+     * @param projectCode projectCode
+     * @return process definition list
+     */
+    List<DependentSimplifyDefinition> queryDefinitionListByProjectCodeAndProcessDefinitionCodes(@Param("projectCode") long projectCode,
+                                                                                                @Param("codes") Collection<Long> codes);
+
+    /**
      * query process definition by ids
      *
      * @param ids ids
@@ -122,25 +151,28 @@ public interface ProcessDefinitionMapper extends BaseMapper<ProcessDefinition> {
     List<ProcessDefinition> queryDefinitionListByIdList(@Param("ids") Integer[] ids);
 
     /**
-     * query process definition by tenant
+     * Statistics process definition group by project codes list
+     * <p>
+     * We only need project codes to determine whether the definition belongs to the user or not.
      *
-     * @param tenantId tenantId
-     * @return process definition list
+     * @param projectCodes projectCodes
+     * @return definition group by user
      */
-    List<ProcessDefinition> queryDefinitionListByTenant(@Param("tenantId") int tenantId);
+    List<DefinitionGroupByUser> countDefinitionByProjectCodes(@Param("projectCodes") Long[] projectCodes);
 
     /**
-     * count process definition group by user
+     * Statistics process definition group by project codes list
+     * <p>
+     * We only need project codes to determine whether the definition belongs to the user or not.
      *
-     * @param userId userId
      * @param projectCodes projectCodes
-     * @param isAdmin isAdmin
-     * @return process definition list
+     * @param userId userId
+     * @param releaseState releaseState
+     * @return definition group by user
      */
-    List<DefinitionGroupByUser> countDefinitionGroupByUser(
-            @Param("userId") Integer userId,
-            @Param("projectCodes") Long[] projectCodes,
-            @Param("isAdmin") boolean isAdmin);
+    List<DefinitionGroupByUser> countDefinitionByProjectCodesV2(@Param("projectCodes") Long[] projectCodes,
+                                                                @Param("userId") Integer userId,
+                                                                @Param("releaseState") Integer releaseState);
 
     /**
      * list all resource ids
