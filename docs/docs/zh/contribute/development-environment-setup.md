@@ -61,7 +61,6 @@ DolphinScheduler 每次发版都会同时发布 Docker 镜像，你可以在 [Do
 cd dolphinscheduler
 ./mvnw -B clean package \
        -Dmaven.test.skip \
-       -Dmaven.javadoc.skip \
        -Dspotless.skip=true \
        -Ddocker.tag=<TAG> \
        -Pdocker,release
@@ -75,9 +74,7 @@ cd dolphinscheduler
 cd dolphinscheduler
 ./mvnw -B clean deploy \
        -Dmaven.test.skip \
-       -Dmaven.javadoc.skip \
        -Dspotless.skip = true \
-       -Dmaven.deploy.skip \
        -Ddocker.tag=<TAG> \
        -Ddocker.hub=<HUB_URL> \
        -Pdocker,release
@@ -148,7 +145,7 @@ pnpm run dev
 
 #### zookeeper
 
-下载 [ZooKeeper](https://www.apache.org/dyn/closer.lua/zookeeper/zookeeper-3.6.3)，解压
+下载 [ZooKeeper](https://zookeeper.apache.org/releases.html)，解压
 
 * 在 ZooKeeper 的目录下新建 zkData、zkLog文件夹
 * 将 conf 目录下的 `zoo_sample.cfg` 文件，复制一份，重命名为 `zoo.cfg`，修改其中数据和日志的配置，如：

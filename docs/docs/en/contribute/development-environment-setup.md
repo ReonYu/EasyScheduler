@@ -64,7 +64,6 @@ DolphinScheduler will release new Docker images after it released, you could fin
 cd dolphinscheduler
 ./mvnw -B clean package \
        -Dmaven.test.skip \
-       -Dmaven.javadoc.skip \
        -Dspotless.skip = true \
        -Ddocker.tag=<TAG> \
        -Pdocker,release
@@ -78,9 +77,7 @@ When the command is finished you could find them by command `docker images`.
 cd dolphinscheduler
 ./mvnw -B clean deploy \
        -Dmaven.test.skip \
-       -Dmaven.javadoc.skip \
        -Dspotless.skip = true \
-       -Dmaven.deploy.skip \
        -Ddocker.tag=<TAG> \
        -Ddocker.hub=<HUB_URL> \
        -Pdocker,release
@@ -153,7 +150,7 @@ The browser access address [http://localhost:5173](http://localhost:5173) can lo
 
 #### zookeeper
 
-Download [ZooKeeper](https://www.apache.org/dyn/closer.lua/zookeeper/zookeeper-3.6.3), and extract it.
+Download [ZooKeeper](https://zookeeper.apache.org/releases.html), and extract it.
 
 - Create directory `zkData` and `zkLog`
 - Go to the zookeeper installation directory, copy configure file `zoo_sample.cfg` to `conf/zoo.cfg`, and change value of dataDir in conf/zoo.cfg to dataDir=./tmp/zookeeper
